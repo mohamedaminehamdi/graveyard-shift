@@ -4,6 +4,7 @@ import re
 import sys
 from datetime import date
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import pytest
 
@@ -24,7 +25,7 @@ def test_persona_sources_read_back():
 def test_weekly_events_land_on_the_right_day():
     ics = ("BEGIN:VEVENT\nUID:standup\nDTSTART;TZID=Europe/Berlin:20261005T091500\nDTEND;TZID=Europe/Berlin:20261005T093000\n"
            "RRULE:FREQ=WEEKLY;BYDAY=MO,TH\nSUMMARY:Standup\nEND:VEVENT\n")
-    events = sources.read_ics(ics)
+    events = sources.read_ics(ics, tz=ZoneInfo("Europe/Berlin"))   # the same wall-clock time across the DST change
     assert [e["start"][11:16] for e in sources.events_on(events, date(2026, 10, 29))] == ["09:15"]   # a Thursday
     assert sources.events_on(events, date(2026, 10, 28)) == []                                        # a Wednesday
 
@@ -70,10 +71,15 @@ def test_path_guard(room):
 @pytest.mark.skipif(sys.platform != "darwin", reason="sandbox-exec is macOS")
 def test_tests_run_in_a_sandbox(room, tmp_path):
     outside = tmp_path / "ghost-was-here.txt"
+    home = Path.home()
     probe = (f"python3 -c \"import urllib.request; urllib.request.urlopen('https://example.com', timeout=5)\" ; echo net=$?; "
-             f"python3 -c \"open('{outside}', 'w')\" ; echo write=$?; python3 -c \"open('inside.txt', 'w')\" ; echo here=$?")
+             f"python3 -c \"open('{outside}', 'w')\" ; echo write=$?; python3 -c \"open('inside.txt', 'w')\" ; echo here=$?; "
+             f"open https://example.com ; echo url=$?; ls {home} ; echo home=$?; "
+             f"osascript -e 'tell application \"Finder\" to get name of startup disk' ; echo events=$?")
     passed, out = sandbox.run_sandboxed(room, probe)
-    assert "net=1" in out and "write=1" in out and "here=0" in out and not outside.exists()
+    for blocked in ("net", "write", "url", "home", "events"):   # no network, no writes out, no opening URLs, no home, no Apple Events
+        assert f"{blocked}=0" not in out, out
+    assert "here=0" in out and not outside.exists()
     assert sandbox.run_sandboxed(room, "python3 -m unittest -q")[0]
 
 

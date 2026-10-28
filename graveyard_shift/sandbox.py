@@ -1,5 +1,5 @@
-"""The code ghost's room: a git worktree on its own branch, a path guard, and tests run inside a macOS sandbox
-with no network, no writes outside the worktree, and no reads of your keys or personal folders.
+"""The code ghost's room: a git worktree on its own branch, a path guard, and tests run inside a deny-by-default
+macOS sandbox: no network, no Apple Events, no opening URLs, no reading your home, no writes outside the worktree.
 
 The model writes the tests it runs, so the sandbox, not the test command, is the real boundary.
 """
@@ -12,14 +12,21 @@ from pathlib import Path
 from .sources import git
 
 HOME = Path.home()
-PRIVATE = [".ssh", ".aws", ".config", ".gnupg", ".netrc", ".docker", ".kube", ".graveyard-shift/nights",
-           "Library", "Desktop", "Documents", "Downloads", "Pictures", "Movies", "Music"]
+TOOLCHAINS = [".local/share/uv", ".pyenv", ".rustup", ".cargo", ".nvm", ".volta", ".bun", "go/pkg"]   # read-only
+# Deny by default: no network, no Apple Events (so no scripting Mail), no opening URLs or apps, no reading your home.
+# Tests may read the system and language toolchains, and read and write only the worktree and a fresh temp folder.
 PROFILE = """(version 1)
-(allow default)
-(deny network*)
-(deny file-write*)
-(allow file-write* (subpath "{root}") (subpath "{tmp}") (literal "/dev/null") (literal "/dev/zero") (regex #"^/dev/(tty|fd/)"))
-(deny file-read* {private})
+(deny default)
+(allow process-exec process-fork signal sysctl-read)
+(allow file-read-metadata)
+(allow file-read* (literal "/") (literal "/etc") (literal "/var") (literal "/tmp") (literal "/private")
+  (subpath "/usr") (subpath "/bin") (subpath "/sbin") (subpath "/System") (subpath "/Library") (subpath "/opt")
+  (subpath "/private/etc") (subpath "/private/var/db/timezone") (subpath "/private/var/db/dyld") (subpath "/dev")
+  {toolchains})
+(allow file-read* file-write* (subpath "{root}") (subpath "{tmp}"))
+(allow file-write* (literal "/dev/null") (literal "/dev/zero") (regex #"^/dev/(tty|fd/)"))
+(allow file-ioctl (regex #"^/dev/"))
+(deny network* appleevent-send lsopen)
 """
 GHOST = ["-c", "user.name=Code ghost", "-c", "user.email=ghost@graveyard-shift.invalid"]
 
@@ -54,8 +61,8 @@ def make_worktree(repo, root, slug):
 def run_sandboxed(root, command, heartbeat=lambda: None, timeout=180):
     """Run the repo's test command in the sandbox. Returns (passed, output)."""
     root, tmp = os.path.realpath(root), os.path.realpath(tempfile.mkdtemp(prefix="ghost-tests-"))
-    private = " ".join(f'(subpath "{os.path.realpath(HOME / p)}")' for p in PRIVATE)
-    profile = PROFILE.format(root=root, tmp=tmp, private=private)
+    toolchains = " ".join(f'(subpath "{os.path.realpath(HOME / t)}")' for t in TOOLCHAINS)
+    profile = PROFILE.format(root=root, tmp=tmp, toolchains=toolchains)
     env = {"PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin", "HOME": tmp, "TMPDIR": tmp + "/",
            "LANG": "en_US.UTF-8", "PYTHONDONTWRITEBYTECODE": "1"}
     proc = subprocess.Popen(["/usr/bin/sandbox-exec", "-p", profile, "/bin/sh", "-c", command], cwd=root, env=env,
