@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="en" data-sky="dusk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self'; font-src 'self'; script-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'">
+<title>Graveyard Shift: AI ghosts that work your night shift</title>
+<meta name="description" content="Leave a note at bedtime. While you sleep, ghost agents on local Gemma 4 sort your mail, read your files, prepare tomorrow's meetings and write tests for your code. Nothing is ever sent.">
+<meta name="theme-color" content="#0b0f1a">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Graveyard Shift">
+<meta property="og:description" content="AI ghosts that work your night shift on local Gemma 4: mail, files, calendar and code, done while you sleep.">
+<meta property="og:url" content="https://mohamedaminehamdi.github.io/graveyard-shift/">
+<meta property="og:image" content="https://mohamedaminehamdi.github.io/graveyard-shift/og.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-256.png">
+<link rel="preload" href="fonts/bricolage-grotesque-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/geist-mono-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="style.css">
+<script type="module" src="main.js"></script>
+</head>
+<body>
+<!-- Icons: Phosphor (MIT), bold weight. Fonts: Bricolage Grotesque and Geist Mono (SIL OFL 1.1), see fonts/. -->
+<div class="sky" aria-hidden="true">
+  <div class="layer dusk"></div>
+  <div class="layer night"></div>
+  <div class="layer deep"></div>
+  <div class="layer predawn"></div>
+  <div class="layer dawn"></div>
+  <div class="stars"></div>
+  <div class="moon"></div>
+  <div class="sun"></div>
+  <div class="mist one"></div>
+  <div class="mist two"></div>
+</div>
+
+<header class="nav">
+  <a class="brand" href="#top"><img src="icon.svg" alt="" width="30" height="30"><span>Graveyard Shift</span></a>
+  <div class="nav-links">
+    <a class="quiet" href="https://github.com/mohamedaminehamdi/graveyard-shift">
+      <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path d="M212.62,75.17A63.7,63.7,0,0,0,206.39,26,12,12,0,0,0,196,20a63.71,63.71,0,0,0-50,24H126A63.71,63.71,0,0,0,76,20a12,12,0,0,0-10.39,6,63.7,63.7,0,0,0-6.23,49.17A61.5,61.5,0,0,0,52,104v8a60.1,60.1,0,0,0,45.76,58.28A43.66,43.66,0,0,0,92,192v4H76a20,20,0,0,1-20-20,44.05,44.05,0,0,0-44-44,12,12,0,0,0,0,24,20,20,0,0,1,20,20,44.05,44.05,0,0,0,44,44H92v12a12,12,0,0,0,24,0V192a20,20,0,0,1,40,0v40a12,12,0,0,0,24,0V192a43.66,43.66,0,0,0-5.76-21.72A60.1,60.1,0,0,0,220,112v-8A61.5,61.5,0,0,0,212.62,75.17ZM196,112a36,36,0,0,1-36,36H112a36,36,0,0,1-36-36v-8a37.87,37.87,0,0,1,6.13-20.12,11.65,11.65,0,0,0,1.58-11.49,39.9,39.9,0,0,1-.4-27.72,39.87,39.87,0,0,1,26.41,17.8A12,12,0,0,0,119.82,68h32.35a12,12,0,0,0,10.11-5.53,39.84,39.84,0,0,1,26.41-17.8,39.9,39.9,0,0,1-.4,27.72,12,12,0,0,0,1.61,11.53A37.85,37.85,0,0,1,196,104Z"/></svg>
+      <span class="label">GitHub</span>
+    </a>
+    <a class="cta" href="#install" data-install>
+      <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path d="M228,144v64a12,12,0,0,1-12,12H40a12,12,0,0,1-12-12V144a12,12,0,0,1,24,0v52H204V144a12,12,0,0,1,24,0Zm-108.49,8.49a12,12,0,0,0,17,0l40-40a12,12,0,0,0-17-17L140,115V32a12,12,0,0,0-24,0v83L96.49,95.51a12,12,0,0,0-17,17Z"/></svg>
+      <span>Install<span class="long"> on your Mac</span></span>
+    </a>
+  </div>
+</header>
+
+<div class="clock" aria-hidden="true"><span class="d"><span>2</span></span><span class="d"><span>2</span></span><span class="colon">:</span><span class="d"><span>4</span></span><span class="d"><span>7</span></span></div>
+
+<main>
+  <section class="hero" id="top" data-sky="dusk">
+    <div class="hero-copy">
+      <h1>Your ghosts work the night&nbsp;shift.</h1>
+      <p class="lede">Leave a note at bedtime. While you sleep, local AI ghosts sort your mail, find files, prep meetings, fix code.</p>
+      <div class="ctas">
+        <a class="cta big" href="#install" data-install>
+          <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path d="M228,144v64a12,12,0,0,1-12,12H40a12,12,0,0,1-12-12V144a12,12,0,0,1,24,0v52H204V144a12,12,0,0,1,24,0Zm-108.49,8.49a12,12,0,0,0,17,0l40-40a12,12,0,0,0-17-17L140,115V32a12,12,0,0,0-24,0v83L96.49,95.51a12,12,0,0,0-17,17Z"/></svg>
+          <span>Install on your Mac</span>
+        </a>
+        <a class="quiet big" href="https://github.com/mohamedaminehamdi/graveyard-shift">
+          <svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path d="M212.62,75.17A63.7,63.7,0,0,0,206.39,26,12,12,0,0,0,196,20a63.71,63.71,0,0,0-50,24H126A63.71,63.71,0,0,0,76,20a12,12,0,0,0-10.39,6,63.7,63.7,0,0,0-6.23,49.17A61.5,61.5,0,0,0,52,104v8a60.1,60.1,0,0,0,45.76,58.28A43.66,43.66,0,0,0,92,192v4H76a20,20,0,0,1-20-20,44.05,44.05,0,0,0-44-44,12,12,0,0,0,0,24,20,20,0,0,1,20,20,44.05,44.05,0,0,0,44,44H92v12a12,12,0,0,0,24,0V192a20,20,0,0,1,40,0v40a12,12,0,0,0,24,0V192a43.66,43.66,0,0,0-5.76-21.72A60.1,60.1,0,0,0,220,112v-8A61.5,61.5,0,0,0,212.62,75.17ZM196,112a36,36,0,0,1-36,36H112a36,36,0,0,1-36-36v-8a37.87,37.87,0,0,1,6.13-20.12,11.65,11.65,0,0,0,1.58-11.49,39.9,39.9,0,0,1-.4-27.72,39.87,39.87,0,0,1,26.41,17.8A12,12,0,0,0,119.82,68h32.35a12,12,0,0,0,10.11-5.53,39.84,39.84,0,0,1,26.41-17.8,39.9,39.9,0,0,1-.4,27.72,12,12,0,0,0,1.61,11.53A37.85,37.85,0,0,1,196,104Z"/></svg>
+          <span>GitHub</span>
+        </a>
+      </div>
+    </div>
+    <div class="hero-art" aria-hidden="true">
+      <div class="mac"><div class="lid"><div class="screen"></div></div><div class="deck"></div></div>
+      <div class="spirit s1"><div class="body"><i></i></div></div>
+      <div class="spirit s2"><div class="body"><i></i></div></div>
+      <div class="spirit s3"><div class="body"><i></i></div></div>
+      <div class="spirit s4"><div class="body"><i></i></div></div>
+    </div>
+  </section>
+
+  <section class="ch split ch-note" id="note" data-time="22:47" data-sky="dusk" aria-labelledby="note-h">
+    <div class="ch-copy">
+      <h2 id="note-h">Leave them a note.</h2>
+      <p>Say what you need by morning, press Goodnight, and leave the Mac open and plugged in.</p>
+    </div>
+    <div class="ch-art" aria-hidden="true">
+      <div class="note-card panel">
+        <span class="note-label">For the ghosts</span>
+        <p class="note-text">write tests for slugify in inkwell and fix whatever they catch; find the contract Hans sent; prep my 10:00</p>
+        <div class="note-foot"><span class="goodnight">Goodnight</span><span class="note-after">Screen off. They wait for you to fall asleep.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="ch wide ch-wait" id="wait" data-time="23:31" data-sky="night" aria-labelledby="wait-h">
+    <div class="ch-copy">
+      <h2 id="wait-h">They wait until you're asleep.</h2>
+      <p>TabPFN learns when you wake from your Mac's own power log. After twenty quiet minutes on the charger, they rise.</p>
+    </div>
+    <div class="ch-art" aria-hidden="true">
+      <div class="chart">
+        <!-- Marisol's chance of being up, per quarter hour after 23:31: the real TabPFN v2 model on her (fictional) power log -->
+        <svg class="curve" viewBox="0 0 640 236">
+          <defs>
+            <linearGradient id="dawn-fill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#e9a040" stop-opacity=".42"/>
+              <stop offset="1" stop-color="#e9a040" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <path class="base" d="M24 196H616"/>
+          <path class="area" d="M24 196L444.6 196C449.8 196 455 195.1 460.2 194.3C465.4 193.6 470.6 194.2 475.8 191C481 187.7 486.2 189 491.4 172.5C496.6 156 501.8 115.1 506.9 91.8C512.1 68.6 517.3 38.1 522.5 33C527.7 28 532.9 28 538.1 28L616 28L616 196Z" fill="url(#dawn-fill)"/>
+          <path class="line" pathLength="1" d="M24 196L444.6 196C449.8 196 455 195.1 460.2 194.3C465.4 193.6 470.6 194.2 475.8 191C481 187.7 486.2 189 491.4 172.5C496.6 156 501.8 115.1 506.9 91.8C512.1 68.6 517.3 38.1 522.5 33C527.7 28 532.9 28 538.1 28L616 28"/>
+          <g class="done-by"><path d="M491.4 20V196"/></g>
+          <g class="up"><circle cx="506.9" cy="91.8" r="5"/></g>
+        </svg>
+        <div class="flags"><span class="stop"><b>07:00</b>the ghosts stop</span><span class="up"><b>07:15</b>you're likely up</span></div>
+        <div class="ticks"><span>00:00</span><span>02:00</span><span>04:00</span><span>06:00</span><span>08:00</span></div>
+        <div class="sleepers">
+          <div class="spirit sleeper"><div class="body"><i></i></div></div>
+          <div class="spirit sleeper"><div class="body"><i></i></div></div>
+          <div class="spirit sleeper"><div class="body"><i></i></div></div>
+          <div class="spirit sleeper"><div class="body"><i></i></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="ch wide ch-mail" id="mail" data-time="00:12" data-sky="night" aria-labelledby="mail-h">
+    <div class="ch-copy">
+      <h2 id="mail-h"><span class="nb">28 letters read.</span> <span class="nb">None sent.</span></h2>
+      <p>Replies are drafted for you to send yourself. One letter tried to give the ghosts orders. It was caught.</p>
+    </div>
+    <div class="ch-art board" aria-hidden="true">
+      <div class="col reply">
+        <div class="col-head"><span>Reply</span><b data-count>6</b></div>
+        <div class="slip"><b>Hans Kessler</b><span>Contract v3 for the Lanternfish rebuild</span></div>
+        <div class="slip"><b>Ana Ruiz</b><span>lunch tomorrow?</span></div>
+        <div class="slip"><b>Priya Nair</b><span>Q3 VAT: receipts + invoice 0042</span></div>
+        <div class="draft"><span>Draft, not sent</span>Hola Ana, yes, 12:30 at Casa Calaca sounds perfect!</div>
+      </div>
+      <div class="col fyi">
+        <div class="col-head"><span>FYI</span><b data-count>14</b></div>
+        <div class="slip"><b>Leo Park</b><span>Design review moved to 14:30 tomorrow</span></div>
+        <div class="slip"><b>Forge</b><span>Issue #12: slugify mangles accented titles</span></div>
+        <div class="slip"><b>NightConf</b><span>Your talk 'Haunted by legacy code' was accepted</span></div>
+      </div>
+      <div class="col news">
+        <div class="col-head"><span>News</span><b data-count>6</b></div>
+        <div class="slip"><b>Lantern Weekly</b><span>#212: local-first apps</span></div>
+        <div class="slip"><b>Small Tools Digest</b><span>5 tiny CLIs worth knowing this month</span></div>
+        <div class="slip"><b>Marigold Market</b><span>48h sale: candles, papel picado</span></div>
+      </div>
+      <div class="col possessed">
+        <div class="col-head"><span>Possessed</span><b data-count>2</b></div>
+        <div class="slip evil"><b>Hollow Lane Billing</b><span>Action required: automated assistant notice</span><em>Tried to give the ghosts orders</em></div>
+        <div class="slip"><b>Mail Security</b><span>Your mailbox is 98% full - verify your password</span><em>Phishing</em></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="ch split flip ch-files" id="files" data-time="01:05" data-sky="night" aria-labelledby="files-h">
+    <div class="ch-copy">
+      <h2 id="files-h">Hans's contract, read for you.</h2>
+      <p>The Files ghost reads what you saved today and notes what needs a second look before you sign.</p>
+    </div>
+    <div class="ch-art" aria-hidden="true">
+      <div class="files">
+        <div class="file found"><em>PDF</em><b>Lanternfish_Contract_v3.pdf</b><span>Downloads</span>
+          <div class="verdict">
+            <span>Check before you sign</span>
+            <ul><li>Milestone payments: 30%, 40%, 30%</li><li>Out-of-scope work at EUR 95 an hour</li><li>The source-code transfer clause</li></ul>
+          </div>
+        </div>
+        <div class="file"><em>TXT</em><b>lanternfish-slides-outline.txt</b><span>Desktop</span></div>
+        <div class="file"><em>MD</em><b>kickoff-notes.md</b><span>Documents</span></div>
+        <div class="file"><em>MD</em><b>talk-haunted-by-legacy-code.md</b><span>Documents</span></div>
+        <div class="file"><em>PDF</em><b>invoice-0042.pdf</b><span>Downloads</span></div>
+        <div class="file"><em>TXT</em><b>pan_de_muerto_abuela.txt</b><span>Downloads</span></div>
+        <div class="file"><em>CSV</em><b>receipts-q3.csv</b><span>Downloads</span></div>
+        <div class="spirit reader"><div class="body"><i></i></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="ch split ch-day" id="day" data-time="02:20" data-sky="night" aria-labelledby="day-h">
+    <div class="ch-copy">
+      <h2 id="day-h">Tomorrow, prepared.</h2>
+      <p>Each meeting gets a prep note from the letters and files that matter. Clashes are flagged. Nothing is accepted.</p>
+    </div>
+    <div class="ch-art" aria-hidden="true">
+      <ol class="agenda">
+        <li><time>09:30</time><span>Studio standup</span></li>
+        <li class="key"><time>10:00</time><span>Lanternfish kickoff with Hans Kessler</span>
+          <div class="prep panel">
+            <p>Hans has sent Contract v3 and requested a signature. Be ready to discuss the terms, especially the penalty clause and payment structure.</p>
+            <div class="links"><span>Contract v3 for the Lanternfish rebuild</span><span>Agenda for tomorrow's kickoff</span><span>Lanternfish_Contract_v3.pdf</span></div>
+          </div>
+        </li>
+        <li><time>12:30</time><span>Lunch with Ana</span></li>
+        <li class="clash"><time>14:00</time><span>Dentist (Dr. Ortega)</span><em>Clash</em></li>
+        <li class="clash"><time>14:30</time><span>Lanternfish design review</span></li>
+        <li><time>18:00</time><span>Ofrenda workshop</span></li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="ch wide ch-crash" id="crash" data-time="03:14" data-sky="deep" aria-labelledby="crash-h">
+    <div class="ch-copy">
+      <h2 id="crash-h">Pull the plug. Nothing is lost.</h2>
+      <p>The whole night is one Temporal workflow. Kill it in the middle of a file and a new worker picks that file up. Nothing runs twice.</p>
+    </div>
+    <div class="ch-art crash" aria-hidden="true">
+      <p class="kill"><span>kill -9 95530</span><b class="killed">killed</b></p>
+      <div class="history panel">
+        <div class="kept"><span class="dots"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span>20 steps already done stay done</span></div>
+        <p class="what">The Files ghost, reading Lanternfish_Contract_v3.pdf</p>
+        <ol class="attempts">
+          <li class="a1"><b>Attempt 1</b><span>worker ghosts-95530</span><em>killed</em></li>
+          <li class="timer"><b>60 s</b><span>no heartbeat, so Temporal retries</span><i class="fill"></i></li>
+          <li class="a2"><b>Attempt 2</b><span>worker ghosts-6931</span><em>done</em></li>
+        </ol>
+        <div class="rest"><span class="dots"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span>42 more steps to dawn</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="ch wide ch-code" id="code" data-time="04:40" data-sky="predawn" aria-labelledby="code-h">
+    <div class="ch-copy">
+      <h2 id="code-h">Tests written, on its own branch.</h2>
+      <p>The Code ghost works in a private copy of your repo and runs the tests in a sandbox: no network, no keys, nothing outside its folder.</p>
+    </div>
+    <div class="ch-art" aria-hidden="true">
+      <div class="diff panel">
+        <div class="diff-head"><span>tests/test_text.py</span><span class="branch">ghost/write-tests-for-slugify-1028-1320</span></div>
+        <div class="lines">
+          <span class="ln del">-from inkwell.text import excerpt, reading_time</span>
+          <span class="ln add">+from inkwell.text import excerpt, reading_time, slugify</span>
+          <span class="ln"> </span>
+          <span class="ln add">+    def test_slugify_basic(self):</span>
+          <span class="ln add">+        self.assertEqual(slugify("Hello World"), "hello-world")</span>
+          <span class="ln add">+</span>
+          <span class="ln add">+    def test_slugify_with_punctuation(self):</span>
+          <span class="ln add">+        self.assertEqual(slugify("Hello, World!"), "hello-world")</span>
+          <span class="ln add">+</span>
+          <span class="ln add">+    def test_slugify_edge_cases(self):</span>
+          <span class="ln add">+        self.assertEqual(slugify("---Start---"), "start")</span>
+          <span class="ln add">+        self.assertEqual(slugify("!@#$%^&amp;*()"), "")</span>
+        </div>
+        <div class="result">
+          <span class="before">Ran 2 tests: OK</span>
+          <span class="after"><svg class="icon" viewBox="0 0 256 256" aria-hidden="true"><path d="M232.49,80.49l-128,128a12,12,0,0,1-17,0l-56-56a12,12,0,1,1,17-17L96,183,215.51,63.51a12,12,0,0,1,17,17Z"/></svg>Ran 6 tests: OK</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="ch ch-dawn" id="dawn" data-time="07:15" data-sky="dawn" aria-labelledby="dawn-h">
+    <div class="ch-copy">
+      <h2 id="dawn-h">Good morning.</h2>
+      <p>One briefing, ready before you are. Nothing sent, accepted, moved or merged without you.</p>
+    </div>
+    <div class="ch-art" aria-hidden="true">
+      <div class="brief panel">
+        <div class="brief-head"><b>Good morning, Marisol</b><span>Thursday 29 October</span></div>
+        <div class="row"><span>Letters</span><p>6 replies drafted, 2 possessed letters caught, 0 sent</p></div>
+        <div class="row"><span>Files</span><p>7 read, and Hans's contract has 3 things to check</p></div>
+        <div class="row"><span>Today</span><p>6 meetings prepared, 1 clash at 14:00</p></div>
+        <div class="row"><span>Code</span><p>6 tests pass on its branch: keep it, or exorcise it</p></div>
+      </div>
+      <div class="sinking">
+        <div class="spirit"><div class="body"><i></i></div></div>
+        <div class="spirit"><div class="body"><i></i></div></div>
+        <div class="spirit"><div class="body"><i></i></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="ch ch-install" id="install" data-sky="dawn" aria-labelledby="install-h">
+    <h2 id="install-h">Put them to work tonight.</h2>
+    <div class="cmd panel">
+      <code id="cmd">curl -fsSL https://mohamedaminehamdi.github.io/graveyard-shift/install.sh | sh</code>
+      <button class="cta" id="copy" type="button">
+        <svg class="icon i-copy" viewBox="0 0 256 256" aria-hidden="true"><path d="M216,28H88A12,12,0,0,0,76,40V76H40A12,12,0,0,0,28,88V216a12,12,0,0,0,12,12H168a12,12,0,0,0,12-12V180h36a12,12,0,0,0,12-12V40A12,12,0,0,0,216,28ZM156,204H52V100H156Zm48-48H180V88a12,12,0,0,0-12-12H100V52H204Z"/></svg>
+        <svg class="icon i-check" viewBox="0 0 256 256" aria-hidden="true"><path d="M232.49,80.49l-128,128a12,12,0,0,1-17,0l-56-56a12,12,0,1,1,17-17L96,183,215.51,63.51a12,12,0,0,1,17,17Z"/></svg>
+        <span>Copy</span>
+      </button>
+    </div>
+    <p class="copied" id="copied" role="status"></p>
+    <ol class="steps">
+      <li><b>Copy the line</b><span>Once, on your Mac</span></li>
+      <li><b>Open Terminal</b><span><kbd>⌘</kbd><kbd>Space</kbd> and type Terminal</span></li>
+      <li><b>Paste it</b><span><kbd>⌘</kbd><kbd>V</kbd> then <kbd>Return</kbd></span></li>
+    </ol>
+    <ul class="gets">
+      <li><b>Gemma 4</b><span>6.6 GB</span><em>the ghosts, through Ollama</em></li>
+      <li><b>TabPFN v2</b><span>29 MB</span><em>learns when you wake</em></li>
+      <li><b>Temporal</b><span>151 MB</span><em>keeps the night alive</em></li>
+    </ul>
+    <p class="fine">Apple silicon, macOS 14 or newer. No admin password, no accounts, no API keys. About 8 GB in all, most of it Gemma.
+      <a href="https://github.com/mohamedaminehamdi/graveyard-shift/blob/main/install.sh">Read the installer</a>
+      <a href="https://github.com/mohamedaminehamdi/graveyard-shift#uninstall">Uninstall</a></p>
+    <p class="phone" id="phone" hidden>Graveyard Shift runs on a Mac with Apple silicon. Open this page there to install it.</p>
+  </section>
+</main>
+
+<footer class="foot">
+  <p>Marisol's day is fictional. The ghosts' work, its numbers and the crash come from real recorded runs of Gemma 4 e4b on a MacBook Air. The clock shows a typical night.</p>
+  <p>Built with PriorLabs-TabPFN (<a href="https://huggingface.co/Prior-Labs/TabPFN-v2-clf/blob/main/LICENSE.txt">license</a>), Gemma 4 and Temporal. MIT licensed.</p>
+  <p class="links"><a href="https://github.com/mohamedaminehamdi/graveyard-shift">GitHub</a><a href="https://github.com/mohamedaminehamdi/graveyard-shift/blob/main/graveyard_shift/web/replay/history.json">Raw Temporal history</a><a href="https://github.com/mohamedaminehamdi/graveyard-shift#uninstall">Uninstall</a></p>
+</footer>
+</body>
+</html>

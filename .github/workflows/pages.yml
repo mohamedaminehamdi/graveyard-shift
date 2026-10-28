@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
 concurrency: pages
 jobs:
-  # The site is the recorded night, the installer, and the wheel the installer installs.
+  # The site is the landing page, the installer, and the wheel the installer installs.
   # Built with read-only rights; only the deploy job below can publish.
   build:
     runs-on: ubuntu-latest
@@ -14,10 +14,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e  # v6.8.0
-      - name: the replay on the page is exactly the one rebuilt from the published Temporal history
-        run: python3 -c "import json; from graveyard_shift import replay; d='graveyard_shift/web/replay/'; assert replay.build(json.load(open(d+'history.json')), json.load(open(d+'meta.json'))) == json.load(open(d+'night.json'))"
       - run: uv build --wheel
-      - run: mkdir _site && cp -R graveyard_shift/web/. _site/ && cp install.sh dist/graveyard_shift-0.1.0-py3-none-any.whl _site/
+      - run: |
+          mkdir _site && cp -R site/. _site/
+          cp graveyard_shift/web/icon.svg graveyard_shift/web/icon-256.png install.sh dist/graveyard_shift-0.1.0-py3-none-any.whl _site/
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site

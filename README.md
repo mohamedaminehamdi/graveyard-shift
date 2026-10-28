@@ -5,8 +5,8 @@ contract Hans sent; prep my 10:00"). While you sleep, four ghosts go through you
 calendar and your repo on **local Gemma 4**. In the morning there is one briefing: letters sorted, replies drafted (never
 sent), meetings prepared, the contract found, and a branch with the tests written. Keep it or exorcise it.
 
-**[Watch a recorded night](https://mohamedaminehamdi.github.io/graveyard-shift/)**: every move on that page is one step
-from the night's Temporal history, replayed.
+**[See how a night goes](https://mohamedaminehamdi.github.io/graveyard-shift/)**, told from a real recorded night: the
+letters, files, meetings, crash and code on that page come from its Temporal history.
 
 Built with PriorLabs-TabPFN, Gemma 4 and Temporal. Everything runs on your Mac.
 
@@ -53,8 +53,9 @@ Nothing a ghost writes is sent anywhere. There is no send, forward, accept, move
 The night is one `NightShift` workflow. The workflow only decides; every side effect (reading a letter, each Gemma call,
 each tool call, each test run) is an activity with a timeout and retries, and long Gemma calls heartbeat every 10 seconds.
 The Temporal server runs as its own process with a sqlite file, so if the app crashes, the Mac reboots or the lid gets
-closed, the night picks up where it stopped, and finished work is never done twice. The recorded night on the demo page
-includes a `kill -9` of the whole app in the middle of a letter.
+closed, the night picks up where it stopped, and finished work is never done twice. The recorded night includes a
+`kill -9` of the worker while it was reading a contract: after 60 seconds without a heartbeat, a new worker read that
+file again, and none of the 20 finished steps before it ran twice.
 
 `tests/test_night.py` runs the real workflow on a real Temporal dev server and checks: a whole night, dawn cutting it
 short (the briefing is still written), "I'm awake" ending it early, and a dead worker costing no finished work.
@@ -115,13 +116,14 @@ graveyard-shift --uninstall && uv tool uninstall graveyard-shift
 
 Your nights and settings stay in `~/.graveyard-shift` until you delete it.
 
-## The demo night
+## The recorded night
 
-The day on the demo page belongs to Marisol Vega, who doesn't exist: 28 letters (one tries to possess the ghosts), six
+The recorded night's day belongs to Marisol Vega, who doesn't exist: 28 letters (one tries to possess the ghosts), six
 meetings (two clash), a contract with a nasty clause, and a blog repo whose `slugify` mangles "Día de los Muertos". Her
 files live in [`graveyard_shift/persona`](graveyard_shift/persona). The ghosts, Gemma 4, TabPFN and Temporal were real
 and ran on a MacBook Air M3; [`history.json`](graveyard_shift/web/replay/history.json) is that night's raw Temporal
-history, and CI rebuilds the page's replay from it and fails if they differ.
+history, and CI rebuilds the replay from it and fails if they differ. The
+[landing page](https://mohamedaminehamdi.github.io/graveyard-shift/) tells that night.
 
 ## License
 
