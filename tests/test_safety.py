@@ -25,9 +25,14 @@ def test_persona_sources_read_back():
 def test_weekly_events_land_on_the_right_day():
     ics = ("BEGIN:VEVENT\nUID:standup\nDTSTART;TZID=Europe/Berlin:20261005T091500\nDTEND;TZID=Europe/Berlin:20261005T093000\n"
            "RRULE:FREQ=WEEKLY;BYDAY=MO,TH\nSUMMARY:Standup\nEND:VEVENT\n")
-    events = sources.read_ics(ics, tz=ZoneInfo("Europe/Berlin"))   # the same wall-clock time across the DST change
-    assert [e["start"][11:16] for e in sources.events_on(events, date(2026, 10, 29))] == ["09:15"]   # a Thursday
-    assert sources.events_on(events, date(2026, 10, 28)) == []                                        # a Wednesday
+
+    def seen_from(zone, day=date(2026, 10, 29)):   # a Thursday
+        return [e["start"][11:16] for e in sources.events_on(sources.read_ics(ics, tz=ZoneInfo(zone)), day)]
+
+    assert seen_from("Europe/Berlin") == ["09:15"]                 # the same wall-clock time across the DST change
+    assert seen_from("UTC") == ["08:15"]                           # Berlin left summer time on Oct 25...
+    assert seen_from("America/New_York") == ["04:15"]              # ...New York only leaves it on Nov 1
+    assert seen_from("Europe/Berlin", date(2026, 10, 28)) == []    # a Wednesday
 
 
 def test_the_possession_email_is_caught_without_the_model(monkeypatch):

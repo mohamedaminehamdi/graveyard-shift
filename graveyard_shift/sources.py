@@ -80,9 +80,8 @@ def _when(value, params, tz):
     if params.get("VALUE") == "DATE" or len(value) == 8:
         return date(int(value[:4]), int(value[4:6]), int(value[6:8]))
     t = datetime.strptime(value.rstrip("Z"), "%Y%m%dT%H%M%S")
-    if value.endswith("Z"):
-        return t.replace(tzinfo=ZoneInfo("UTC")).astimezone(tz)
-    return t.replace(tzinfo=ZoneInfo(params["TZID"]) if "TZID" in params else tz).astimezone(tz)
+    # kept on its own clock, so a repeating event keeps its wall-clock time across that zone's DST change
+    return t.replace(tzinfo=ZoneInfo("UTC") if value.endswith("Z") else ZoneInfo(params["TZID"]) if "TZID" in params else tz)
 
 
 def _unescape(v):
@@ -103,7 +102,7 @@ def read_ics(text, tz=None):
     events, ev = [], None
     for line in re.sub(r"\r?\n[ \t]", "", text).splitlines():
         if line == "BEGIN:VEVENT":
-            ev = {"attendees": []}
+            ev = {"attendees": [], "tz": tz}
         elif line == "END:VEVENT" and ev is not None:
             if "start" in ev and ev.get("status") != "CANCELLED":
                 events.append(ev)
@@ -141,22 +140,25 @@ def _recurs_on(ev, day):
 
 
 def events_on(events, day):
-    """One day's agenda, sorted, with repeating events moved onto that day and overlaps marked."""
+    """One day's agenda in your timezone, sorted, with repeating events moved onto that day and overlaps marked."""
     out = []
     for ev in events:
         start, end = ev["start"], ev.get("end") or ev["start"]
         all_day = not isinstance(start, datetime)
-        first = start if all_day else start.date()
-        if first != day:
-            if "rrule" not in ev or not _recurs_on(ev, day):
+        first = start if all_day else start.date()   # on the event's own clock
+        # your day can begin or end on the event's day before or after (a 23:00 New York call is 05:00 in Berlin)
+        for own in [day] if all_day else [day - timedelta(days=1), day, day + timedelta(days=1)]:
+            if own != first and ("rrule" not in ev or not _recurs_on(ev, own)):
                 continue
-            shift = timedelta(days=(day - first).days)
-            start, end = start + shift, end + shift
-        out.append({
-            "id": re.sub(r"[^\w.-]", "_", ev.get("uid", ev.get("title", "event")))[:60],
-            "title": ev.get("title", "(no title)"), "where": ev.get("where", ""), "notes": ev.get("notes", "")[:600],
-            "attendees": ev["attendees"][:12], "all_day": all_day, "start": start, "end": end,
-        })
+            shift = timedelta(days=(own - first).days)   # whole days on its own clock, then onto yours
+            s, e = (start + shift, end + shift) if all_day else ((start + shift).astimezone(ev["tz"]), (end + shift).astimezone(ev["tz"]))
+            if (s if all_day else s.date()) != day:
+                continue
+            out.append({
+                "id": re.sub(r"[^\w.-]", "_", ev.get("uid", ev.get("title", "event")))[:60],
+                "title": ev.get("title", "(no title)"), "where": ev.get("where", ""), "notes": ev.get("notes", "")[:600],
+                "attendees": ev["attendees"][:12], "all_day": all_day, "start": s, "end": e,
+            })
     out.sort(key=lambda e: (not e["all_day"], str(e["start"])))
     timed = [e for e in out if not e["all_day"]]
     for a in out:
