@@ -12,7 +12,10 @@ from pathlib import Path
 from .sources import git
 
 HOME = Path.home()
-TOOLCHAINS = [".local/share/uv", ".pyenv", ".rustup", ".cargo", ".nvm", ".volta", ".bun", "go/pkg"]   # read-only
+# Interpreters and packages only (read-only); never the folders where tokens live
+TOOLCHAINS = [".local/share/uv/python", ".local/share/uv/tools", ".pyenv/versions", ".rustup/toolchains", ".cargo/bin",
+              ".cargo/registry", ".nvm/versions", ".volta/tools", ".bun/bin", "go/pkg/mod"]
+CREDENTIALS = [".cargo/credentials", ".cargo/credentials.toml", ".local/share/uv/credentials", ".npmrc", ".pypirc", ".netrc"]
 # Deny by default: no network, no Apple Events (so no scripting Mail), no opening URLs or apps, no reading your home.
 # Tests may read the system and language toolchains, and read and write only the worktree and a fresh temp folder.
 PROFILE = """(version 1)
@@ -27,6 +30,7 @@ PROFILE = """(version 1)
 (allow file-write* (literal "/dev/null") (literal "/dev/zero") (regex #"^/dev/(tty|fd/)"))
 (allow file-ioctl (regex #"^/dev/"))
 (deny network* appleevent-send lsopen)
+(deny file-read* {credentials})
 """
 GHOST = ["-c", "user.name=Code ghost", "-c", "user.email=ghost@graveyard-shift.invalid"]
 
@@ -62,7 +66,8 @@ def run_sandboxed(root, command, heartbeat=lambda: None, timeout=180):
     """Run the repo's test command in the sandbox. Returns (passed, output)."""
     root, tmp = os.path.realpath(root), os.path.realpath(tempfile.mkdtemp(prefix="ghost-tests-"))
     toolchains = " ".join(f'(subpath "{os.path.realpath(HOME / t)}")' for t in TOOLCHAINS)
-    profile = PROFILE.format(root=root, tmp=tmp, toolchains=toolchains)
+    credentials = " ".join(f'(subpath "{os.path.realpath(HOME / c)}")' for c in CREDENTIALS)   # last rule wins
+    profile = PROFILE.format(root=root, tmp=tmp, toolchains=toolchains, credentials=credentials)
     env = {"PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin", "HOME": tmp, "TMPDIR": tmp + "/",
            "LANG": "en_US.UTF-8", "PYTHONDONTWRITEBYTECODE": "1"}
     proc = subprocess.Popen(["/usr/bin/sandbox-exec", "-p", profile, "/bin/sh", "-c", command], cwd=root, env=env,
