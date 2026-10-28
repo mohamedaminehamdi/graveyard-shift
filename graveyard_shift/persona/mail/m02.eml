@@ -1,0 +1,20 @@
+From: Forge <notifications@forge.example>
+To: Marisol Vega <marisol@hollowlane.example>
+Subject: [inkwell] Issue #12: slugify mangles accented titles
+Date: Wed, 28 Oct 2026 09:40:00 +0100
+Message-ID: <179318596278.13654.599251152301645939.m02@forge.example>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+tomasz-w opened issue #12 in marisol/inkwell:
+
+slugify('D=C3=ADa de los Muertos') returns 'd-a-de-los-muertos'. Expected 'di=
+a-de-los-muertos'.
+Same with 'Cr=C3=A8me br=C3=BBl=C3=A9e' -> 'cr-me-br-l-e'. The post URLs look=
+ broken.
+
+There are no tests for slugify at all, so nobody noticed.
+
+--=20
+Reply to this email or view it on Forge.

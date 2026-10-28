@@ -1,0 +1,6 @@
+Lanternfish kickoff - slides
+1. Who we are (Hollow Lane, 2 people, 9 years)
+2. What we heard: booking flow is the pain point
+3. Proposed phases: discovery, booking flow, CMS migration, launch
+4. Timeline: beta in week 6, launch in week 8
+5. Next steps: sitemap, CMS access, analytics access

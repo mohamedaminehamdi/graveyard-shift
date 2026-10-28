@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self'; font-src 'self'; script-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'">
+<title>Graveyard Shift</title>
+<meta name="description" content="Ghost agents that work your night shift: mail, files, calendar and code, on local Gemma 4, while you sleep.">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="./"><img src="icon.svg" alt="" width="34" height="34"><span>Graveyard Shift</span></a>
+  <p class="tag">Ghost agents work your night shift on local Gemma 4 while you sleep.</p>
+  <button class="install-btn" id="install-open" type="button">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-5-5m5 5 5-5M4 19h16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <span>Install<span class="long"> on your Mac</span></span>
+  </button>
+</header>
+
+<main>
+  <section class="stage-wrap">
+    <div class="stage" aria-hidden="true">
+      <svg id="scene" role="presentation"></svg>
+      <div class="caption" id="caption"><b id="cap-who"></b> <span id="cap-line"></span><small id="cap-detail"></small></div>
+    </div>
+    <div class="bar">
+      <button class="play" id="play" type="button" aria-label="Pause"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="i-pause" d="M8 5v14M16 5v14"/><path class="i-play" d="M7 4.5v15l12-7.5z"/></svg></button>
+      <input id="scrub" type="range" min="0" max="1" value="0" step="1" aria-label="Night timeline">
+      <span class="clock" id="clock" aria-live="off">--:--</span>
+      <button class="speed" id="speed" type="button" aria-label="Playback speed">1×</button>
+      <button class="skip" id="skip" type="button">Dawn →</button>
+    </div>
+    <p class="counts" id="counts" aria-live="polite"></p>
+  </section>
+
+  <section class="evening" id="evening" hidden>
+    <h2>Leave the ghosts a note</h2>
+    <textarea id="note" rows="3" placeholder="write tests for slugify in my blog repo; find the contract Hans sent; prep my 10:00"></textarea>
+    <div class="row"><button class="goodnight" id="goodnight" type="button">Goodnight</button>
+      <span>Leave the Mac open and plugged in. The ghosts wait until you're asleep.</span></div>
+  </section>
+
+  <section class="briefing" id="briefing" aria-labelledby="morning-title" hidden>
+    <h2 id="morning-title">Good morning</h2>
+    <p class="night-line" id="night-line"></p>
+    <div class="cols">
+      <div class="col">
+        <h3>Letters</h3>
+        <div id="mail"></div>
+      </div>
+      <div class="col">
+        <h3>Today</h3>
+        <ol class="agenda" id="today"></ol>
+        <h3>Files</h3>
+        <ul class="files" id="files"></ul>
+        <h3>Code</h3>
+        <div id="code"></div>
+      </div>
+    </div>
+    <details class="log"><summary>What the ghosts did, step by step</summary><ol id="log"></ol></details>
+  </section>
+</main>
+
+<footer class="foot">
+  <p>Recorded on a real night: every move above is one step from the night's Temporal history, replayed. The day is fictional (Marisol's); the ghosts, Gemma 4, TabPFN and Temporal are real and ran on a MacBook Air.</p>
+  <p><a href="https://github.com/mohamedaminehamdi/graveyard-shift">Code</a> · <a href="replay/history.json">Raw history</a> · MIT ·
+    Built with PriorLabs-TabPFN (<a href="https://huggingface.co/Prior-Labs/TabPFN-v2-clf/blob/main/LICENSE.txt">license</a>) · Gemma 4 · Temporal</p>
+</footer>
+
+<dialog id="install" aria-labelledby="install-title">
+  <button class="close" id="install-close" type="button" aria-label="Close">×</button>
+  <div class="sheet-head"><img src="icon.svg" alt="" width="64" height="64">
+    <div><h2 id="install-title">Install Graveyard Shift</h2><p>One line in Terminal, once. Then leave the ghosts a note at bedtime.</p></div></div>
+  <ol class="steps">
+    <li><span class="num first">1</span><div><b>Copy this line</b>
+      <div class="cmd"><code id="cmd">curl -fsSL https://mohamedaminehamdi.github.io/graveyard-shift/install.sh | sh</code><button id="copy" type="button">Copy</button></div></div></li>
+    <li><span class="num">2</span><div><b>Open Terminal</b><span class="keys"><kbd>⌘</kbd><kbd>Space</kbd>, then type “Terminal”</span></div></li>
+    <li><span class="num">3</span><div><b>Paste it and press Return</b><span class="keys"><kbd>⌘</kbd><kbd>V</kbd> <kbd>Return</kbd>, then open Graveyard Shift from Applications</span></div></li>
+  </ol>
+  <div class="gets">
+    <div><b>Gemma 4</b><span>via Ollama, on your Mac</span></div>
+    <div><b>TabPFN</b><span>learns when you wake</span></div>
+    <div><b>Temporal</b><span>a night that survives crashes</span></div>
+  </div>
+  <div class="fine"><span>No admin password</span><span>Nothing is ever sent</span><span>Apple silicon, macOS 14+</span>
+    <a href="https://github.com/mohamedaminehamdi/graveyard-shift/blob/main/install.sh">Read the script</a>
+    <a href="https://github.com/mohamedaminehamdi/graveyard-shift#uninstall">Uninstall</a></div>
+  <p class="phone" id="phone" hidden>On a phone? Open this page on your Mac to install.</p>
+</dialog>
+<script type="module" src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [4 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+4 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents 5 0 R >>
+endobj
+5 0 obj
+<< /Length 1167 >>
+stream
+BT /F1 10 Tf 50 800 Td 14 TL (SERVICES AGREEMENT  \(version 3, 27 October 2026\)) ' () ' (Between Lanternfish Logistics GmbH \("Client"\) and Hollow Lane Studio, Marisol Vega \("Studio"\).) ' () ' (1. Scope. The Studio rebuilds the Client's public website: a new booking flow, and migration of) ' (   about 140 pages from the old CMS. Hosting stays with the Client.) ' (2. Timeline. Discovery in week 1, a beta in week 6, launch in week 8.) ' (3. Fee. EUR 18,400 in three milestones: 30% on signature, 40% at beta, 30% at launch.) ' (4. Payment terms. Invoices are payable within 45 days of receipt.) ' (5. Changes. Work outside the scope is billed at EUR 95 per hour after written approval.) ' (6. Confidentiality. Both parties keep the other's business information confidential.) ' (7. Ownership. All source code, designs and files produced by the Studio become the property of) ' (   the Client upon signature of this agreement.) ' (8. Termination. Either party may end this agreement with 14 days' written notice; work done) ' (   until then is paid.) ' () ' (Signed for the Client: Hans Kessler, Head of Digital        Signed for the Studio: ______________) ' ET
+endstream
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000212 00000 n 
+0000000338 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+1557
+%%EOF

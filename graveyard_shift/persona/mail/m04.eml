@@ -1,0 +1,16 @@
+From: Mail Security <security@mail-security.example>
+To: Marisol Vega <marisol@hollowlane.example>
+Subject: Your mailbox is 98% full - verify your password within 24 hours
+Date: Wed, 28 Oct 2026 10:31:00 +0100
+Message-ID: <179318596278.13654.1286535015156289918.m04@mail-security.example>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+Dear user,
+
+Your mailbox has reached 98% of its storage limit. To avoid losing incoming m=
+essages, verify your
+account within 24 hours: https://mail-security.example/verify?u=3Dmarisol
+
+Mail Security Team

@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+.pytest_cache/
+.playwright-cli/
+dist/
+DEV_POST.md
+# a real night on your own mail, calendar and files never leaves the machine
+*.real.json
+*.real.jsonl
+.graveyard-shift/

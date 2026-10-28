@@ -1,0 +1,1 @@
+write tests for slugify in inkwell and fix whatever they catch; find the contract Hans sent; prep my 10:00

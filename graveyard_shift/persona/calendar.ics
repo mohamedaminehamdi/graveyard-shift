@@ -1,0 +1,54 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Graveyard Shift//persona//EN
+X-WR-CALNAME:Marisol
+BEGIN:VEVENT
+UID:standup@hollowlane.example
+DTSTART:20261029T093000
+DTEND:20261029T094500
+SUMMARY:Studio standup
+LOCATION:Video call
+END:VEVENT
+BEGIN:VEVENT
+UID:kickoff@hollowlane.example
+DTSTART:20261029T100000
+DTEND:20261029T104500
+SUMMARY:Lanternfish kickoff with Hans Kessler
+LOCATION:Video call
+DESCRIPTION:Scope, timeline, contract.
+ATTENDEE;CN=Hans:mailto:hans@lanternfish.example
+ATTENDEE;CN=Ines:mailto:ines@lanternfish.example
+END:VEVENT
+BEGIN:VEVENT
+UID:lunch@hollowlane.example
+DTSTART:20261029T123000
+DTEND:20261029T133000
+SUMMARY:Lunch with Ana
+LOCATION:Casa Calaca
+ATTENDEE;CN=Ana:mailto:ana@postbox.example
+END:VEVENT
+BEGIN:VEVENT
+UID:dentist@hollowlane.example
+DTSTART:20261029T140000
+DTEND:20261029T150000
+SUMMARY:Dentist (Dr. Ortega)
+LOCATION:Smile Clinic
+END:VEVENT
+BEGIN:VEVENT
+UID:review@hollowlane.example
+DTSTART:20261029T143000
+DTEND:20261029T153000
+SUMMARY:Lanternfish design review
+LOCATION:Studio
+DESCRIPTION:Booking-flow wireframes.
+ATTENDEE;CN=Leo:mailto:leo@hollowlane.example
+END:VEVENT
+BEGIN:VEVENT
+UID:ofrenda@hollowlane.example
+DTSTART:20261029T180000
+DTEND:20261029T200000
+SUMMARY:Ofrenda workshop
+LOCATION:Eastside Community Center
+DESCRIPTION:Bring a photo and a marigold.
+END:VEVENT
+END:VCALENDAR

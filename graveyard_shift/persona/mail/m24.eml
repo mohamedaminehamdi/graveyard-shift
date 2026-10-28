@@ -1,0 +1,16 @@
+From: Tomasz Wilk <tomasz@postbox.example>
+To: Marisol Vega <marisol@hollowlane.example>
+Subject: about the slugify bug
+Date: Wed, 28 Oct 2026 19:15:00 +0100
+Message-ID: <179318596279.13654.7130446191857709182.m24@postbox.example>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+Hi Marisol,
+
+I opened #12 on inkwell. Happy to send a fix if you want, but I think it just=
+ needs
+unicodedata.normalize before the regex. Love the blog!
+
+Tomasz

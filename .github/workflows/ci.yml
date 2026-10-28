@@ -1,0 +1,46 @@
+name: ci
+on: [push, pull_request]
+jobs:
+  test:
+    # The real NightShift workflow on a real Temporal dev server (activities faked), the sandbox, the injection guard,
+    # TabPFN's slots, and the published replay rebuilt from the published Temporal history.
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e  # v6.8.0
+      - run: uv run pytest -q
+      - name: wheel ships the graveyard and the persona, not the post images
+        run: |
+          uv build --wheel
+          unzip -l dist/*.whl | grep -q graveyard_shift/web/index.html
+          unzip -l dist/*.whl | grep -q graveyard_shift/persona/mail/m07.eml
+          ! unzip -l dist/*.whl | grep -q graveyard_shift/web/post/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheel
+          path: dist/*.whl
+
+  lint-installer:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: shellcheck install.sh && sh -n install.sh
+
+  install:
+    # A clean Mac: the installer fetches uv itself, installs this commit's wheel and makes the app.
+    needs: test
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: wheel
+          path: dist
+      - run: GS_SKIP_MODELS=1 GS_SOURCE="$PWD/dist/graveyard_shift-0.1.0-py3-none-any.whl" sh install.sh
+      - name: the app exists, is signed, and the command works
+        run: |
+          test -f "$HOME/Applications/Graveyard Shift.app/Contents/Resources/applet.icns"
+          codesign --verify --deep "$HOME/Applications/Graveyard Shift.app"
+          "$HOME/.local/bin/graveyard-shift" --help
+          "$HOME/.local/bin/graveyard-shift" --uninstall
+          test ! -e "$HOME/Applications/Graveyard Shift.app"
