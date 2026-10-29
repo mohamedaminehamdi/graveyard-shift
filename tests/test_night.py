@@ -3,6 +3,7 @@
 These run the real NightShift workflow on a real Temporal dev server, with every activity faked.
 """
 import asyncio
+import base64
 import json
 import re
 import uuid
@@ -36,8 +37,10 @@ def night(**changes):
 @activity.defn(name="gather")
 async def gather(n):
     return {"mail": [{"id": f"m{i}", "from": "Hans", "address": "hans@x.example", "subject": "hi", "message_id": ""} for i in range(6)],
+            "threads": [{"id": "t01", "app": "whatsapp", "with": "Ana", "link": "", "count": 2}],
             "events": [{"id": "kickoff", "title": "Kickoff", "start": "", "end": "", "all_day": False, "where": "", "clashes": []}],
-            "files": [{"id": "f01", "name": "contract.pdf", "folder": "Downloads", "kind": "pdf"}], "repos": ["inkwell"]}
+            "files": [{"id": "f01", "name": "contract.pdf", "folder": "Downloads", "kind": "pdf", "movable": True}],
+            "folders": ["Clients"], "skipped": 1, "problems": [], "repos": ["inkwell"]}
 
 
 @activity.defn(name="triage_email")
@@ -60,7 +63,9 @@ async def llm_turn(a):
 
 FAKES = {
     "forecast_dawn": lambda a: {"nights": 9, "wake": soon(7200), "dawn": soon(3600), "curve": [], "lights_out": a["lights_out"]},
-    "read_file_item": lambda a: {"summary": "a contract", "kind": "contract", "check": [], "answers": ""},
+    "read_file_item": lambda a: {"summary": "a contract", "kind": "contract", "check": [], "answers": "",
+                                 "move_to": a["folders"][0]},
+    "read_thread": lambda a: {"label": "reply", "why": "Ana asks about lunch", "summary": "x", "draft": "Yes!", "caught_by": []},
     "prep_meeting": lambda a: {"prep": ["bring the contract"], "letters": [], "files": ["f01"]},
     "open_worktree": lambda a: {"path": "/nowhere", "branch": "ghost/x", "status": {"stale": []}, "baseline": {"passed": False, "tail": ""}},
     "run_tool": lambda a: {"text": "PASSED", "passed": True},
@@ -79,8 +84,9 @@ def fake(name, fn):
     return run
 
 
-MAIN_ACTS = [gather] + [fake(n, f) for n, f in FAKES.items() if n not in ("read_file_item", "prep_meeting")]
-CANDLE_ACTS = [triage_email, llm_turn, fake("read_file_item", FAKES["read_file_item"]), fake("prep_meeting", FAKES["prep_meeting"])]
+THINKING = ("read_file_item", "prep_meeting", "read_thread")
+MAIN_ACTS = [gather] + [fake(n, f) for n, f in FAKES.items() if n not in THINKING]
+CANDLE_ACTS = [triage_email, llm_turn] + [fake(n, FAKES[n]) for n in THINKING]
 
 
 def workers(client):
@@ -106,6 +112,8 @@ def test_a_whole_night():
         assert [m["label"] for m in briefing["mail"]] == ["fyi"] * 6
         assert briefing["code"][0]["state"] == "done" and briefing["code"][0]["passed"]
         assert briefing["today"][0]["files"] == ["f01"]
+        assert briefing["messages"][0]["label"] == "reply" and briefing["messages"][0]["draft"] == "Yes!"
+        assert briefing["files"][0]["move_to"] == "Clients" and briefing["skipped"] == 1
     PACE["s"] = 0.0
     with_server(go)
 
@@ -180,3 +188,7 @@ def test_the_published_replay_is_the_published_history():
     assert replay.build(history, meta) == json.loads((folder / "night.json").read_text())
     addresses = set(re.findall(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+", (folder / "night.json").read_text()))
     assert all(a.endswith(".example") or a.endswith(".invalid") for a in addresses), addresses   # only the persona
+    payloads = " ".join(base64.b64decode(d).decode("utf-8", "replace")
+                        for d in re.findall(r'"data": "([A-Za-z0-9+/=]+)"', (folder / "history.json").read_text()))
+    assert "/Users/" not in payloads                                          # no home folder, so no user name
+    assert all(n.startswith("+1555") for n in re.findall(r"\+\d{9,}", payloads))   # only the persona's 555 numbers

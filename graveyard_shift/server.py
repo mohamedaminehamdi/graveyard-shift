@@ -1,7 +1,8 @@
 """The graveyard on your Mac, served only to this machine (127.0.0.1).
 
 Evening: leave a note and say goodnight (the night runs as its own process, so closing this page changes nothing).
-Night: the page replays the live Temporal history as it grows. Morning: the briefing, with Keep / Exorcise.
+Night: the page shows the live Temporal history as it grows. Morning: the briefing, with Tidy / Undo for the files the
+Files ghost suggested a folder for, and Keep / Exorcise for the Code ghost's branch.
 """
 import asyncio
 import json
@@ -15,7 +16,7 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 from . import night as nights
-from . import replay, sandbox
+from . import replay, sandbox, sources
 from .workflow import NightShift
 
 WEB = Path(__file__).parent / "web"
@@ -63,6 +64,8 @@ class Handler(SimpleHTTPRequestHandler):
         self.send_header("Content-Security-Policy", CSP)
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("Referrer-Policy", "no-referrer")
+        if not self.path.startswith("/api/"):
+            self.send_header("Cache-Control", "no-cache")   # after an upgrade the page is never an old cached copy
         super().end_headers()
 
     def _json(self, data, status=200):
@@ -107,6 +110,8 @@ class Handler(SimpleHTTPRequestHandler):
                 return self._json({"ok": True})
             if self.path in ("/api/keep", "/api/exorcise"):
                 return self._settle(self.path.rsplit("/", 1)[1], body)
+            if self.path in ("/api/tidy", "/api/untidy"):
+                return self._tidy(self.path == "/api/tidy")
             return self._json({"error": "not found"}, 404)
         finally:
             self.lock.release()
@@ -119,6 +124,15 @@ class Handler(SimpleHTTPRequestHandler):
                              stdout=log, stderr=log, stdin=subprocess.DEVNULL, start_new_session=True)
         threading.Timer(8, subprocess.run, [["pmset", "displaysleepnow"]]).start()   # lights out; the Mac stays awake
         return self._json({"ok": True})
+
+    def _tidy(self, on):
+        """Tidy (or undo) last night's suggested moves: the files and folders that night gathered, and nothing else."""
+        name = (((last_night() or {}).get("briefing") or {}).get("night") or {}).get("id", "")
+        folder = nights.HOME / "nights" / name
+        if not name or Path(name).name != name or not (folder / "folders.json").exists():
+            return self._json({"error": "There's nothing to tidy from last night."}, 400)
+        moved = sources.tidy(folder) if on else sources.untidy(folder)
+        return self._json({"ok": True, "moved": len(moved)})
 
     def _settle(self, what, body):
         """Keep or Exorcise one branch the ghosts made last night, and nothing else."""

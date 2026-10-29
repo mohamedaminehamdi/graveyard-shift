@@ -2,11 +2,12 @@
 
 Thinking (every Gemma call) runs on the "candle" task queue with room for one at a time: the ghosts take turns on the
 GPU. Long calls heartbeat every 10 s, so if the worker dies Temporal notices within a minute and retries elsewhere.
-Inputs are references (an email's id, a file's id), so the night's history holds no letters or files.
+Inputs are references (an email's id, a chat's id, a file's id), so the night's history holds no letters, chats or files.
 """
 import asyncio
 import json
 import shutil
+import sqlite3
 from datetime import date, datetime
 from pathlib import Path
 
@@ -17,6 +18,9 @@ from . import ghosts, llm, sandbox, sleep, sources
 HOME = Path.home() / ".graveyard-shift"
 WORKTREES = HOME / "worktrees"
 FOLDERS = ["~/Downloads", "~/Desktop", "~/Documents"]
+MAX_THREADS = 30
+LOOSE = ("Downloads", "Desktop")   # where the Files ghost may suggest a better folder
+FULL_DISK = "allow Full Disk Access for Graveyard Shift in System Settings > Privacy & Security"
 
 
 async def _beating(fn, *args):
@@ -41,34 +45,86 @@ def _folder(path, base):
         return path.parent.name
 
 
+def _letters(night, mail, problems):
+    """Today's letters into mail/: from Gmail if you connected it, else from Mail.app if you switched that on."""
+    if night.get("gmail"):
+        password = sources.secret(f"gmail:{night['gmail']}")
+        if not password:
+            return problems.append(f"Gmail: run  graveyard-shift connect gmail {night['gmail']}  once")
+        try:
+            sources.gmail_letters(night["gmail"], password, mail)
+        except Exception as e:   # the password stays out of the message: imaplib never echoes it
+            problems.append(f"Gmail said no: {str(e)[:160]}")
+    elif night.get("mail"):
+        sources.export_mail(mail)
+
+
+def _chats(apps, problems):
+    """Today's chats from each app you switched on. One app saying no costs that app, never the night."""
+    def slack():
+        token = sources.secret("slack")
+        if not token:
+            raise LookupError("run  graveyard-shift connect slack  once")
+        return sources.slack_threads(token)
+    readers = {"imessage": sources.imessage_threads, "whatsapp": sources.whatsapp_threads, "slack": slack}
+    names = {"imessage": "Messages", "whatsapp": "WhatsApp", "slack": "Slack"}
+    threads = []
+    for app in apps:
+        try:
+            threads += readers[app]()
+        except (sqlite3.Error, PermissionError):
+            problems.append(f"{names[app]}: {FULL_DISK}" if app != "whatsapp" or sources.WHATSAPP_DB.exists()
+                            else "WhatsApp: no WhatsApp for Mac on this Mac")
+        except Exception as e:
+            problems.append(f"{names.get(app, app)}: {str(e)[:160]}")
+    return threads
+
+
 def _gather(night):
     d = Path(night["dir"])
     mail = d / "mail"
     mail.mkdir(parents=True, exist_ok=True)
+    problems = []
     if night.get("persona"):
         for p in (sources.FIXTURES / "mail").glob("*.eml"):
             shutil.copy(p, mail / p.name)
         ics = (sources.FIXTURES / "calendar.ics").read_text()
-        base = sources.FIXTURES / "files"
+        base = d / "files"   # Marisol's files, copied: in the morning Tidy really moves them
+        if not base.exists():
+            shutil.copytree(sources.FIXTURES / "files", base)
+        for folder in json.loads((sources.FIXTURES / "folders.json").read_text()):
+            (base / "Documents" / folder).mkdir(parents=True, exist_ok=True)
         found = sorted(p for p in base.rglob("*") if p.is_file() and not p.name.startswith("."))
+        chats = json.loads((sources.FIXTURES / "messages.json").read_text())
+        documents = base / "Documents"
         sources.persona_repo(Path(night["repos"][0]["path"]))
     else:
-        if night.get("mail"):
-            sources.export_mail(mail)
+        _letters(night, mail, problems)
+        chats = _chats(night.get("messages") or [], problems)
         ics = "\n".join(sources.fetch_ics(url) for url in night.get("ics", []))
         base, found = Path.home(), sources.recent_files(night.get("folders") or FOLDERS)
+        documents = Path.home() / "Documents"
+    chats, skipped = sources.drop_codes(chats)
+    threads = [{"id": f"t{n:02d}", **t} for n, t in enumerate(chats[:MAX_THREADS], 1)]
     (d / "calendar.ics").write_text(ics)
+    (d / "threads.json").write_text(json.dumps(threads, ensure_ascii=False))
+    folders = sources.destinations(documents)
+    (d / "folders.json").write_text(json.dumps({"base": str(documents), "folders": folders}))
     letters = [sources.read_eml(p) for p in sorted(mail.glob("*.eml"))]
     events = sources.events_on(sources.read_ics(ics), date.fromisoformat(night["day"]))
     files = [{"id": f"f{n:02d}", "path": str(p), "name": p.name, "folder": _folder(p, base),
-              "kind": p.suffix.lstrip(".").lower() or "file"} for n, p in enumerate(found, 1)]
+              "kind": p.suffix.lstrip(".").lower() or "file", "movable": _folder(p, base).split("/")[0] in LOOSE,
+              "size": p.stat().st_size, "mtime": int(p.stat().st_mtime)} for n, p in enumerate(found, 1)]
     (d / "files.json").write_text(json.dumps(files))
     (d / "events.json").write_text(json.dumps(events))
     return {
         "mail": [{"id": m["id"], "from": _who(m["from"]), "address": m["from"], "subject": m["subject"][:100],
                   "message_id": m["message_id"]} for m in letters],
+        "threads": [{"id": t["id"], "app": t["app"], "with": t["with"], "link": t["link"], "count": len(t["messages"])}
+                    for t in threads],
         "events": [{k: e[k] for k in ("id", "title", "start", "end", "all_day", "where", "clashes")} for e in events],
-        "files": [{k: f[k] for k in ("id", "name", "folder", "kind")} for f in files],
+        "files": [{k: f[k] for k in ("id", "name", "folder", "kind", "movable")} for f in files],
+        "folders": folders, "skipped": skipped, "problems": problems,
         "repos": [r["name"] for r in night["repos"]],
     }
 
@@ -106,10 +162,17 @@ async def triage_email(a: dict) -> dict:
 
 
 @activity.defn
+async def read_thread(a: dict) -> dict:
+    thread = {t["id"]: t for t in json.loads((Path(a["dir"]) / "threads.json").read_text())}[a["id"]]
+    answer, tokens = await _beating(ghosts.read_thread, thread, a["owner"], a["model"])
+    return {**answer, "tokens": tokens, "model": a["model"]}
+
+
+@activity.defn
 async def read_file_item(a: dict) -> dict:
     item = {f["id"]: f for f in json.loads((Path(a["dir"]) / "files.json").read_text())}[a["id"]]
     text = await asyncio.to_thread(sources.read_text, item["path"])
-    answer, tokens = await _beating(ghosts.read_file_item, item, text, a["find"], a["owner"], a["model"])
+    answer, tokens = await _beating(ghosts.read_file_item, item, text, a["find"], a["owner"], a["model"], a.get("folders", []))
     return {**answer, "readable": text is not None, "tokens": tokens, "model": a["model"]}
 
 
@@ -190,4 +253,4 @@ async def unload_model(a: dict) -> None:
 
 
 ON_MAIN = [gather, check_sleep, choose_model, forecast_dawn, open_worktree, run_tool, commit_work, write_briefing, unload_model]
-ON_CANDLE = [triage_email, read_file_item, prep_meeting, llm_turn]
+ON_CANDLE = [triage_email, read_thread, read_file_item, prep_meeting, llm_turn]

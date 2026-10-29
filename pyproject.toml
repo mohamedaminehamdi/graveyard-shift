@@ -9,7 +9,6 @@ dependencies = [
     "pypdf>=6.0",
     "tabpfn>=9.2.0,<9.3",
     "temporalio>=1.18",
-    "pyobjc-framework-EventKit>=11; sys_platform == 'darwin'",
 ]
 
 [dependency-groups]

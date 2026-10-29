@@ -28,10 +28,12 @@ def _result(name, arg, res):
     """Only what the scene and its captions need."""
     if res is None:
         return None
-    if name == "triage_email":
-        return {"label": res["label"], "why": _short(res["why"], 90), "caught_by": res.get("caught_by", [])}
+    if name in ("triage_email", "read_thread"):
+        out = {"label": res["label"], "why": _short(res["why"], 90), "caught_by": res.get("caught_by", [])}
+        return {**out, "app": arg["app"]} if name == "read_thread" else out
     if name == "read_file_item":
-        return {"kind": res["kind"], "summary": _short(res["summary"]), "answers": res["answers"], "check": len(res["check"])}
+        return {"kind": res["kind"], "summary": _short(res["summary"]), "answers": res["answers"], "check": len(res["check"]),
+                "move_to": res.get("move_to", "")}
     if name == "prep_meeting":
         return {"prep": len(res["prep"]), "letters": res["letters"], "files": res["files"]}
     if name == "llm_turn":
@@ -39,9 +41,12 @@ def _result(name, arg, res):
             return {"plan": {k: res["content"].get(k) for k in ("code", "find", "prep_first")}}
         calls = [{"name": c["name"], "path": c["args"].get("path", c["args"].get("pattern", ""))} for c in res["calls"]]
         return {"calls": calls, "said": _short(res["message"].get("content"), 120)}
-    if name == "run_tool":
+    if name == "run_tool":   # with a terminal's worth of what came back: the test result, a write, a listing
         call = arg["call"]
-        return {"tool": call["name"], "path": call["args"].get("path", call["args"].get("pattern", "")), "passed": res["passed"]}
+        lines = [line for line in res["text"].splitlines() if line.strip() and not line.startswith("---")]
+        out = {"run_tests": lines[-2:], "write_file": lines[:1], "list_dir": ["  ".join(lines)[:120]]}.get(call["name"], [])
+        path = call["args"].get("path", call["args"].get("pattern", "")) or (arg.get("test", "") if call["name"] == "run_tests" else "")
+        return {"tool": call["name"], "path": path, "passed": res["passed"], "out": out}
     if name == "open_worktree":
         return {"branch": res["branch"], "baseline": res["baseline"]["passed"], "stale": res["status"]["stale"]}
     if name == "commit_work":

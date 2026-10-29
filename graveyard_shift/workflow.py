@@ -3,10 +3,10 @@
 The workflow only decides; every side effect is an activity. So a crash, a reboot or a closed lid only pauses the
 night, and when the worker comes back it carries on from Temporal's history: finished letters are never read twice.
 
-  dusk    gather the day's letters, files and agenda (while you're awake for any permission prompt)
+  dusk    gather the day's letters, chats, files and agenda (while you're awake for any permission prompt)
   graves  durable timers: peek every 5 minutes until you've been away 20 minutes (and the Mac is on power)
   keeper  the Keeper reads your note, asks TabPFN when you'll wake, and plans the night
-  work    four ghosts at once, taking turns on the GPU (the candle), until done, dawn, or "I'm awake"
+  work    five ghosts at once, taking turns on the GPU (the candle), until done, dawn, or "I'm awake"
   dawn    the briefing
 """
 import asyncio
@@ -35,7 +35,7 @@ class NightShift:
         self.phase, self.ended, self.awake, self.note = "dusk", None, False, None
         self.model, self.peeks, self.lights_out = None, 0, None
         self.inventory, self.forecast, self.plan = {}, {}, {}
-        self.mail, self.files, self.meetings, self.code = {}, {}, {}, {}
+        self.mail, self.threads, self.files, self.meetings, self.code = {}, {}, {}, {}, {}
 
     @workflow.signal
     def wake(self):
@@ -50,8 +50,9 @@ class NightShift:
     @workflow.query
     def progress(self) -> dict:
         return {"phase": self.phase, "model": self.model, "peeks": self.peeks, "dawn": self.forecast.get("dawn"),
-                "read": {"mail": len(self.mail), "files": len(self.files), "events": len(self.meetings)},
-                "of": {k: len(self.inventory.get(k, [])) for k in ("mail", "files", "events")},
+                "read": {"mail": len(self.mail), "threads": len(self.threads), "files": len(self.files),
+                         "events": len(self.meetings)},
+                "of": {k: len(self.inventory.get(k, [])) for k in ("mail", "threads", "files", "events")},
                 "code": {k: v.get("state") for k, v in self.code.items()}}
 
     @workflow.run
@@ -132,7 +133,7 @@ class NightShift:
     async def shift(self, night):
         code = [asyncio.create_task(self.code_ghost(night, task)) for task in self.plan["code"]]
         try:
-            await asyncio.gather(self.mail_ghost(night), self.files_ghost(night))
+            await asyncio.gather(self.mail_ghost(night), self.messages_ghost(night), self.files_ghost(night))
             await self.calendar_ghost(night)
             await asyncio.gather(*code)
         finally:
@@ -150,11 +151,23 @@ class NightShift:
                     raise
                 self.mail[m["id"]] = {"label": "unread", "why": "the ghost couldn't read this one"}
 
+    async def messages_ghost(self, night):
+        for t in self.inventory.get("threads", []):
+            try:
+                self.threads[t["id"]] = await self.think(
+                    "read_thread", {"dir": night["dir"], "id": t["id"], "app": t["app"], "owner": night["owner"],
+                                    "ghost": "messages", "target": f"thread:{t['id']}"}, f"Messages ghost reads {t['id']}")
+            except ActivityError as e:
+                if is_cancelled_exception(e):
+                    raise
+                self.threads[t["id"]] = {"label": "unread", "why": "the ghost couldn't read this one"}
+
     async def files_ghost(self, night):
         for f in self.inventory["files"]:
             try:
                 self.files[f["id"]] = await self.think(
                     "read_file_item", {"dir": night["dir"], "id": f["id"], "find": self.plan["find"], "owner": night["owner"],
+                                       "folders": self.inventory.get("folders", []) if f.get("movable") else [],
                                        "ghost": "files", "target": f"file:{f['id']}"}, f"Files ghost reads {f['id']}")
             except ActivityError as e:
                 if is_cancelled_exception(e):
@@ -164,6 +177,8 @@ class NightShift:
     async def calendar_ghost(self, night):
         letters = [f"{m['id']} | {m['from']} | {m['subject']} | {self.mail.get(m['id'], {}).get('summary', '')}"
                    for m in self.inventory["mail"] if self.mail.get(m["id"], {}).get("label") in ("reply", "fyi")]
+        letters += [f"{t['id']} | {t['with']} | a chat on {t['app']} | {self.threads.get(t['id'], {}).get('summary', '')}"
+                    for t in self.inventory.get("threads", []) if self.threads.get(t["id"], {}).get("label") in ("reply", "fyi")]
         files = [f"{f['id']} | {f['folder']}/{f['name']} | {self.files.get(f['id'], {}).get('summary', '')} | "
                  f"{'; '.join(self.files.get(f['id'], {}).get('check', []))}" for f in self.inventory["files"]]
         for e in self.inventory["events"]:
@@ -230,13 +245,16 @@ class NightShift:
         inv = self.inventory
         briefing = {
             "night": {"id": night["id"], "owner": night["owner"], "persona": bool(night.get("persona")), "ended": ended,
+                      "gmail": bool(night.get("gmail")),
                       "model": self.model, "lights_out": self.lights_out, "peeks": self.peeks, "forecast": self.forecast,
                       "plan": self.plan, "deadline": night.get("dawn") or self.forecast.get("dawn"),
                       "finished": workflow.now().isoformat()},
             "mail": [{**m, **self.mail.get(m["id"], {"label": "unread"})} for m in inv.get("mail", [])],
+            "messages": [{**t, **self.threads.get(t["id"], {"label": "unread"})} for t in inv.get("threads", [])],
             "today": [{**e, **self.meetings.get(e["id"], {})} for e in inv.get("events", [])],
             "files": [{**f, **self.files.get(f["id"], {})} for f in inv.get("files", [])],
             "code": list(self.code.values()),
+            "skipped": inv.get("skipped", 0), "problems": inv.get("problems", []),
         }
         await workflow.execute_activity("write_briefing", {"dir": night["dir"], "briefing": briefing, "ghost": "keeper",
                                                            "target": "dawn"}, summary="Dawn: write the briefing", **QUICK)

@@ -18,7 +18,8 @@ APP = Path.home() / "Applications" / "Graveyard Shift.app"
 BUNDLE_ID = "io.github.mohamedaminehamdi.graveyardshift"
 AGENT = Path.home() / "Library" / "LaunchAgents" / f"{BUNDLE_ID}.night.plist"
 ICON = Path(__file__).parent / "ghost.icns"
-FILES_WHY = "At bedtime the Files ghost reads what you saved today, to prepare your morning briefing. It never moves anything."
+FILES_WHY = ("At bedtime the Files ghost reads what you saved today and suggests a folder for each loose file. "
+             "Nothing moves until you press Tidy in the morning.")
 MAIL_WHY = "At bedtime the Mail ghost copies today's letters out of Mail to sort them on this Mac. It can't send, move or delete."
 
 # Opening the app shows the graveyard; the nightly run starts a night in the background and the app quits.
@@ -70,10 +71,13 @@ def default_config():
     name = subprocess.run(["id", "-F"], capture_output=True, text=True).stdout.strip() or "you"
     night.CONFIG.parent.mkdir(parents=True, exist_ok=True)
     night.CONFIG.write_text(json.dumps({
-        "name": name, "mail": False, "ics": [], "folders": ["~/Downloads", "~/Desktop", "~/Documents"],
+        "name": name, "mail": False, "gmail": "", "messages": [], "ics": [], "folders": ["~/Downloads", "~/Desktop", "~/Documents"],
         "repos": [], "_help": "repos: [{'name': 'blog', 'path': '~/code/blog', 'test': 'python3 -m pytest -q'}]; "
                               "ics: Google Calendar > Settings > your calendar > Secret address in iCal format; "
-                              "mail: true reads today's inbox from Mail.app (add your account in Internet Accounts)"}, indent=1))
+                              "gmail: run graveyard-shift connect gmail you@gmail.com (an app password, kept in your Keychain); "
+                              "mail: true reads today's inbox from Mail.app instead; "
+                              "messages: any of imessage, whatsapp, slack (the first two need Full Disk Access; "
+                              "slack: graveyard-shift connect slack)"}, indent=1))
     print(f"  Settings: {night.CONFIG} (your name, repos, calendar feed).")
 
 

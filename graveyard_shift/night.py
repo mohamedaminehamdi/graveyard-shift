@@ -98,14 +98,16 @@ def persona_night(note=None, dawn_in=None, wait=False):
 
 
 def real_night(note, wait=True):
-    """Your night: your inbox (via Mail.app), your calendar feed, your files, your repos. Settings in config.json."""
+    """Your night: your inbox (Gmail or Mail.app), your chats, your calendar feed, your files, your repos. Settings in
+    config.json; the Gmail app password and the Slack token live in your Keychain."""
     cfg = json.loads(CONFIG.read_text()) if CONFIG.exists() else {}
     now = datetime.now()
     morning = now + timedelta(days=1) if now.hour >= 12 else now
     stamp = now.strftime("%m%d-%H%M")
     return {"id": f"night-{now:%Y%m%d}", "stamp": stamp, "dir": str(HOME / "nights" / f"night-{now:%Y%m%d}"),
             "owner": cfg.get("name", "you"), "persona": False, "tonight": now.strftime("%A %d %B"),
-            "day": morning.date().isoformat(), "note": note, "mail": cfg.get("mail", False), "ics": cfg.get("ics", []),
+            "day": morning.date().isoformat(), "note": note, "mail": cfg.get("mail", False), "gmail": cfg.get("gmail", ""),
+            "messages": cfg.get("messages", []), "ics": cfg.get("ics", []),
             "folders": cfg.get("folders"), "repos": cfg.get("repos", []), "wait": wait,
             "give_up": _local(now.replace(hour=5, minute=0) + timedelta(days=now.hour >= 5)),
             "not_before": _evening(now) if wait else None, "dawn": None,
