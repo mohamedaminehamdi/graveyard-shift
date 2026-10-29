@@ -27,7 +27,7 @@ def main(argv=None):
     ap.add_argument("what", nargs="*", help="connect: gmail you@gmail.com, or slack")
     ap.add_argument("--note", help="what the ghosts should do tonight")
     ap.add_argument("--now", action="store_true", help="night: don't wait for sleep")
-    ap.add_argument("--dawn-in", type=int, metavar="MIN", help="demo: dawn this many minutes from now")
+    ap.add_argument("--dawn-in", type=int, metavar="MIN", help="demo: dawn this many minutes from now (default 90)")
     ap.add_argument("--wait", action="store_true", help="demo: wait for you to fall asleep, like a real night")
     ap.add_argument("--model", help="a specific local model (default: the biggest Gemma 4 that fits tonight)")
     ap.add_argument("--setup", action="store_true", help="download Gemma 4, TabPFN and Temporal; make the app")

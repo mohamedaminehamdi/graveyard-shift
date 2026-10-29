@@ -87,6 +87,8 @@ def _evening(now, hour=21):
 def persona_night(note=None, dawn_in=None, wait=False):
     """The demo: Marisol Vega's day (fictional), worked on by real ghosts on this Mac."""
     now = datetime.now()
+    if not wait and not dawn_in:   # starting now, maybe at noon: TabPFN's dawn for a noon "lights out" would end it at once
+        dawn_in = 90
     stamp = now.strftime("%m%d-%H%M")
     return {"id": f"persona-{stamp}", "stamp": stamp, "dir": str(HOME / "nights" / f"persona-{stamp}"),
             "owner": "Marisol Vega", "persona": True, "tonight": "Wednesday 28 October", "day": "2026-10-29",
