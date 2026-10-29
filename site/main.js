@@ -206,10 +206,11 @@ const scenes = {
   code(sec) {   // the Code ghost opens a terminal in its sandbox and types what it really ran; the tests go green
     const room = $('.devroom', sec), tl = $('.tl', sec), lines = $$('.tl p', sec);
     const step = .64 / lines.length, at = (i) => .1 + i * step, ok = at(lines.findIndex((p) => p.classList.contains('ok')));
-    const rows = +getComputedStyle(tl).getPropertyValue('--rows'), lh = lines[0].offsetHeight;
+    const rows = +getComputedStyle(tl).getPropertyValue('--rows'), lh = parseFloat(getComputedStyle(lines[0]).lineHeight);
     const up = (i) => Math.max(0, i - rows + 1) * lh;   // once the terminal is full it scrolls, so the line being typed stays in view
     const anims = [move($('.term', sec), [{ opacity: 0, transform: 'scale(.94)' }, { opacity: 1, transform: 'none' }], .02, .1),
-      move($('.tl-in', sec), lines.map((_, i) => ({ offset: i / (lines.length - 1), transform: `translateY(${-up(i)}px)` })), at(0), at(lines.length - 1), 'linear')];
+      move($('.tl-in', sec), lines.map((_, i) => ({ offset: i / (lines.length - 1), transform: `translateY(${-up(i)}px)`, easing: 'steps(1, end)' })),
+        at(0), at(lines.length - 1), 'linear')];   // it jumps a line at a time, like a terminal
     const stops = [];
     lines.forEach((p, i) => {
       const c = p.classList.contains('c');

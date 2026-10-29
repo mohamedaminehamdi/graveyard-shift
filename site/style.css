@@ -330,8 +330,15 @@ html:not(.ready) .runner { display: none; }   /* without motion the scenes show 
   html.ready .ch-files { --len: 2.2; } html.ready .ch-day { --len: 1.9; } html.ready .ch-crash { --len: 2; }
   html.ready .ch-code { --len: 2.3; } html.ready .ch-dawn { --len: 1.7; }
   html.ready .ch:not(.ch-install) { height: calc(var(--len) * 100vh); }
-  html.ready .ch:not(.ch-install) > .stage { position: sticky; top: 0; height: 100vh; min-height: 0; padding-top: 96px; padding-bottom: 48px; }
+  html.ready .ch:not(.ch-install) > .stage { position: sticky; top: 0; height: 100vh; min-height: 0; padding-top: 96px; padding-bottom: 48px;
+    align-content: safe center; }   /* a stage taller than the screen starts at the top instead of losing its heading */
   html.ready .ch h2 { font-size: min(clamp(34px, 4vw, 60px), 6.4vh); }
+}
+@media (min-width: 1024px) and (min-height: 720px) and (max-height: 880px) {   /* 13-inch laptops: a little tighter */
+  html.ready .ch:not(.ch-install) > .stage { padding-top: 84px; padding-bottom: 28px; gap: 28px; }
+  html.ready .ch-copy p { margin-top: 12px; font-size: 16px; max-width: 46ch; }
+  html.ready .rows li { padding-top: 4px; padding-bottom: 4px; }
+  html.ready .tl { --rows: 11; }
 }
 
 /* the note, and the ghosts reading over its edge */
