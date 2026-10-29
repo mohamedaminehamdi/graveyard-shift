@@ -1,17 +1,15 @@
-// The page: plays a night (a recorded one on the web, the live or last one on your Mac), then the morning briefing.
-// Every bit of text from letters, files or the model goes in with textContent: nothing from a night is ever parsed as HTML.
-import { createScene, URNS, GHOSTS } from './scene.js';
-
+// The graveyard on your Mac. Evening: leave a note. Night: one lane per ghost, live from the night's Temporal history
+// (the Code ghost's lane is its terminal). Morning: the briefing, with Tidy / Undo and Keep / Exorcise.
+// Every bit of text from letters, chats, files or the model goes in with textContent: nothing from a night is parsed as HTML.
 const $ = (id) => document.getElementById(id);
-const SHOWN = new Set(['gather', 'check_sleep', 'llm_turn', 'forecast_dawn', 'triage_email', 'read_file_item', 'prep_meeting',
-  'open_worktree', 'run_tool', 'commit_work']);
-const PACE = { gather: 2600, check_sleep: 520, llm_turn: 1500, forecast_dawn: 2800, triage_email: 1500, read_file_item: 1800,
-  prep_meeting: 1800, open_worktree: 1700, run_tool: 850, commit_work: 2000 };
-const SPEEDS = [1, 2, 4];
-const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-let night, steps = [], scene, i = 0, playing = !reduced, speed = 1, run = 0, local = null, looping = false;
-const scrub = $('scrub');
+const LABELS = { reply: 'Reply', fyi: 'FYI', newsletter: 'News', automated: 'Automated', suspicious: 'Possessed', unread: 'Not read before dawn' };
+const APPS = { imessage: 'Messages', whatsapp: 'WhatsApp', slack: 'Slack' };
+const LINKS = /^(sms:\+?[\w@.-]+$|whatsapp:\/\/send\?phone=\d+$|slack:\/\/channel\?team=\w+&id=\w+$)/;   // the only shapes the readers make
+const LANES = [   // ghost, its name, its color, the step it repeats, what it works through
+  ['mail', 'Mail ghost', 'mail', 'triage_email', 'mail'], ['messages', 'Messages ghost', 'msgs', 'read_thread', 'threads'],
+  ['files', 'Files ghost', 'files', 'read_file_item', 'files'], ['calendar', 'Calendar ghost', 'cal', 'prep_meeting', 'events'],
+  ['code', 'Code ghost', 'code']];
+let token = null;
 
 function h(tag, cls, text) {
   const e = document.createElement(tag);
@@ -19,132 +17,162 @@ function h(tag, cls, text) {
   if (text != null) e.textContent = text;
   return e;
 }
-const at = (secs) => new Date(new Date(night.header.started).getTime() + secs * 1000);
-const hm = (d) => d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-// ---- the player ---------------------------------------------------------------------------------------------
-function counts() {
-  const s = scene.state(), inv = s.inv, c = $('counts');
-  const n = (o) => Object.keys(o).length;
-  const t = s.tomb;
-  const code = !t.open ? '' : t.sha ? `${inv.repos[0]}: committed` : `${inv.repos[0]}: tests ${t.tests ? 'pass' : 'fail'}`;
-  const parts = [[n(s.mail), inv.mail.length, 'letters'], [n(s.files), inv.files.length, 'files'], [n(s.meetings), inv.events.length, 'meetings']];
-  c.replaceChildren();
-  parts.forEach(([a, b, what], k) => {
-    if (k) c.append(' · ');
-    c.append(h('b', '', `${a}/${b}`), ` ${what}`);
-  });
-  if (code) c.append(' · ', h('b', '', code));
-  if (s.model) c.append(' · ', s.model);
-  const step = steps[Math.min(i, steps.length - 1)];
-  $('clock').textContent = step ? hm(at(i >= steps.length ? step.end : step.t)) : '';
+const hm = (iso) => (iso ? new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '');
+function spirit(color) {
+  const s = h('span', `spirit ${color}`), body = h('span', 'body');
+  body.append(h('i'));
+  s.append(body);
+  return s;
+}
+async function api(path, body) {
+  const r = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Token': token }, body: JSON.stringify(body || {}) });
+  return r.json();
 }
 
-async function loop() {
-  const my = ++run;
-  looping = true;
-  while (playing && my === run && i < steps.length) {
-    await scene.play(steps[i], (PACE[steps[i].act] + (steps[i].attempt > 1 ? 2600 : 0)) / speed, (i + 1) / steps.length);
-    if (my !== run) return;
-    i++;
-    scrub.value = i;
-    counts();
+// ---- the night: what each ghost has done so far ---------------------------------------------------------------
+function terminal(steps) {   // the Code ghost's real commands, as a terminal shows them
+  const out = [];
+  for (const s of steps) {
+    const r = s.result || {};
+    if (s.act === 'open_worktree') out.push(['c', `$ git worktree add … ${r.branch}`]);
+    if (s.act === 'run_tool') {
+      out.push(['c', r.tool === 'run_tests' ? `$ ${r.path || 'run the tests'}` : r.tool === 'search' ? `$ git grep -n -E ${r.path}` : `ghost> ${r.tool} ${r.path || ''}`]);
+      (r.out || []).forEach((line) => out.push([r.passed === false ? 'o bad' : r.passed ? 'o ok' : 'o', line]));
+    }
+    if (s.act === 'commit_work') out.push(['c', '$ git commit'], ['o', r.sha ? `${r.sha}  ${r.stat}` : 'nothing to commit']);
   }
-  if (my === run) looping = false;
-  if (my === run && i >= steps.length && !local?.running) morning(true);   // a live night: wait for more steps
+  return out;
 }
 
-function seek(k) {
-  run++;
-  i = Math.max(0, Math.min(k, steps.length));
-  scene.seek(i);
-  scrub.value = i;
-  counts();
-  morning(i >= steps.length && !local?.running);
-  if (playing && i < steps.length) loop();
+function board(night) {
+  const steps = night.steps.filter((s) => s.outcome === 'done');
+  const inv = steps.find((s) => s.act === 'gather')?.result;
+  const forecast = steps.find((s) => s.act === 'forecast_dawn')?.result;
+  const peeks = steps.filter((s) => s.act === 'check_sleep').length;
+  $('keeper').textContent = !inv ? 'Gathering the day…'
+    : !forecast ? `The ghosts wait in their graves until you're asleep${peeks ? ` (looked ${peeks} times)` : ''}.`
+    : `TabPFN expects you up around ${hm(forecast.wake)}.${new Date(forecast.dawn) > Date.now() ? ` The briefing will be ready by ${hm(forecast.dawn)}.` : ''}`;
+  const lanes = $('lanes');
+  lanes.replaceChildren();
+  if (!inv) return;
+  for (const [ghost, name, color, act, of] of LANES) {
+    const li = h('li', `lane ${color}`), text = h('div', 'what');
+    const mine = steps.filter((s) => s.ghost === ghost);
+    li.append(spirit(color), text);
+    text.append(h('b', '', name));
+    if (ghost === 'code') {
+      const term = h('div', 'term');
+      for (const [cls, line] of terminal(mine).slice(-8)) term.append(h('p', cls, line));
+      if (!term.childElementCount) term.append(h('p', 'o', 'waiting for the Keeper’s plan…'));
+      text.append(term);
+    } else {
+      const done = mine.filter((s) => s.act === act), all = inv[of] || [], last = done.at(-1);
+      const item = last && all.find((x) => x.id === last.target.split(':')[1]);
+      const r = last?.result || {};
+      const about = !item ? 'waiting for its turn with the candle'
+        : ghost === 'mail' ? `${LABELS[r.label] ?? r.label}: ${item.from}, ${item.subject}`
+        : ghost === 'messages' ? `${LABELS[r.label] ?? r.label}: ${item.with} on ${APPS[item.app] ?? item.app}`
+        : ghost === 'files' ? `${item.name}${r.move_to ? ` → ${r.move_to}` : ''}`
+        : `prepared ${item.title}`;
+      const bar = h('span', 'progress'), fill = h('i');
+      fill.style.setProperty('--k', String(all.length ? done.length / all.length : 0));   // CSSOM, allowed by the page's CSP
+      bar.append(fill);
+      text.append(h('span', '', about), bar);
+      li.append(h('em', '', `${done.length} of ${all.length}`));
+    }
+    lanes.append(li);
+  }
 }
 
-function setPlaying(on) {
-  playing = on;
-  document.body.classList.toggle('paused', !on);
-  $('play').setAttribute('aria-label', on ? 'Pause' : 'Play');
-  if (on) { if (i >= steps.length && !local?.running) seek(0); else loop(); } else { run++; looping = false; }
+// ---- the morning briefing -------------------------------------------------------------------------------------
+function group(box, label, items, each) {
+  if (!items.length) return;
+  const g = h('div', `group g-${label}`);
+  g.append(h('p', 'group-head', `${LABELS[label] ?? label} · ${items.length}`));
+  items.forEach((x) => g.append(each(x)));
+  box.append(g);
+}
+function draft(text, what = 'Drafted reply (not sent)') {
+  const d = h('details', 'draft');
+  d.append(h('summary', '', what), h('p', '', text));
+  return d;
 }
 
-let dawned = false;
-function morning(on) {
-  if (on === dawned) return;
-  dawned = on;
-  scene.dawn(on);
-  document.body.classList.toggle('morning', on);
-  $('briefing').hidden = !on && !reduced;
-  if (on) $('cap-who').textContent = '', $('cap-line').textContent = 'Dawn. The ghosts sink back into the ground.',
-  $('cap-detail').textContent = night.briefing ? 'The briefing is below.' : '';
-}
-
-// ---- the morning briefing -----------------------------------------------------------------------------------
-function briefing(b) {
-  if (!b) return;
+function briefing(b, night) {
   const n = b.night, f = n.forecast || {};
-  const ended = { done: 'The ghosts finished everything', dawn: 'Dawn came first', awake: 'You woke up, so the ghosts stopped', 'no sleep tonight': 'You never fell asleep, so the ghosts stayed in their graves' }[n.ended] ?? n.ended;
-  $('night-line').textContent = [`${ended} (${hm(new Date(n.finished))}).`, n.plan?.message,
-    f.wake && `TabPFN expected you back at the Mac around ${f.wake.slice(11, 16)}, after ${f.nights} nights of learning.`,
+  const ended = { done: 'The ghosts finished everything', dawn: 'Dawn came first', awake: 'You woke up, so the ghosts stopped',
+    'no sleep tonight': 'You never fell asleep, so the ghosts stayed in their graves' }[n.ended] ?? n.ended;
+  $('night-line').textContent = [`${ended} (${hm(n.finished)}).`, n.plan?.message,
+    f.wake && `TabPFN expected you back at the Mac around ${hm(f.wake)}, after ${f.nights} nights of learning.`,
     n.model && `Model: ${n.model}, on this Mac.`].filter(Boolean).join(' ');
+  const problems = $('problems');
+  problems.replaceChildren(...(b.problems || []).map((p) => h('li', '', p)));
 
   const mail = $('mail');
   mail.replaceChildren();
-  for (const [label, name] of URNS) {
-    const items = b.mail.filter((m) => m.label === label);
-    if (!items.length) continue;
-    const g = h('div', `group g-${label}`);
-    const p = h('p');
-    p.append(h('i'), `${name} · ${items.length}`);
-    g.append(p);
-    if (label === 'newsletter') {
-      const wrap = h('div', 'compact');
-      items.forEach((m) => wrap.append(h('span', '', m.from)));
-      g.append(wrap);
-    } else if (label === 'fyi') {
-      const wrap = h('div', 'rows');
-      items.forEach((m) => { const row = h('div'); row.title = m.why || ''; row.append(h('b', '', m.from), ' ', h('span', '', m.subject)); wrap.append(row); });
-      g.append(wrap);
-    } else items.forEach((m) => g.append(letter(m, label)));
-    mail.append(g);
+  for (const label of ['reply', 'suspicious', 'fyi', 'newsletter', 'unread']) {
+    group(mail, label, b.mail.filter((m) => m.label === label), (m) => {
+      const box = h('div', 'item');
+      box.append(h('b', '', m.from), ' ', h('span', 'muted', m.subject));
+      if (m.why && label !== 'newsletter') box.append(h('div', 'why', m.why));
+      if (label === 'suspicious' && m.caught_by?.length) box.append(h('div', 'meta bad', `Caught by ${m.caught_by.join(' and ')}. Nothing in it was followed.`));
+      if (m.draft) box.append(draft(m.draft));
+      if (m.message_id && !n.persona) {
+        const a = h('a', 'meta', n.gmail ? 'Open in Gmail' : 'Open in Mail');
+        a.href = n.gmail ? `https://mail.google.com/mail/u/0/#search/rfc822msgid%3A${encodeURIComponent(m.message_id)}`
+          : `message://${encodeURIComponent(`<${m.message_id}>`)}`;
+        box.append(a);
+      }
+      return box;
+    });
   }
-  const unread = b.mail.filter((m) => !URNS.some(([l]) => l === m.label));
-  if (unread.length) {
-    const g = h('div', 'group g-unread'), wrap = h('div', 'rows');
-    g.append(h('p', '', `Not read before dawn · ${unread.length}`));
-    unread.forEach((m) => { const row = h('div'); row.append(h('b', '', m.from), ' ', h('span', '', m.subject)); wrap.append(row); });
-    g.append(wrap);
-    mail.append(g);
+
+  const chats = $('messages');
+  chats.replaceChildren();
+  for (const label of ['reply', 'suspicious', 'fyi', 'automated', 'unread']) {
+    group(chats, label, (b.messages || []).filter((t) => t.label === label), (t) => {
+      const box = h('div', 'item');
+      box.append(h('b', '', t.with), ' ', h('span', 'app', APPS[t.app] ?? t.app));
+      if (t.why) box.append(h('div', 'why', t.why));
+      if (label === 'suspicious' && t.caught_by?.length) box.append(h('div', 'meta bad', `Caught by ${t.caught_by.join(' and ')}. Nothing in it was followed.`));
+      if (t.draft) box.append(draft(t.draft));
+      if (LINKS.test(t.link || '') && !n.persona) {
+        const a = h('a', 'meta', `Open in ${APPS[t.app]}`);
+        a.href = t.link;
+        box.append(a);
+      }
+      return box;
+    });
   }
+  if (b.skipped) chats.append(h('p', 'muted', `${b.skipped} one-time code${b.skipped > 1 ? 's' : ''} or password reset${b.skipped > 1 ? 's' : ''} left alone: no ghost read ${b.skipped > 1 ? 'them' : 'it'}.`));
+  if (!(b.messages || []).length && !b.skipped) chats.append(h('p', 'muted', 'No chats tonight.'));
 
   const today = $('today');
   today.replaceChildren();
-  const fileName = Object.fromEntries(b.files.map((f) => [f.id, f.name]));
-  const mailFrom = Object.fromEntries(b.mail.map((m) => [m.id, `${m.from}: ${m.subject}`]));
+  const fileName = Object.fromEntries(b.files.map((x) => [x.id, x.name]));
+  const from = Object.fromEntries([...b.mail.map((m) => [m.id, `${m.from}'s letter`]), ...(b.messages || []).map((t) => [t.id, `${t.with}'s chat`])]);
+  const named = (text) => text.replace(/\b[fmt]\d{2}\b/g, (id) => fileName[id] ?? from[id] ?? id);
   for (const e of b.today) {
     const li = h('li');
     li.append(h('span', 'when', e.all_day ? 'all day' : e.start.slice(11, 16)), h('b', '', e.title));
     if (e.clashes?.length) li.append(' ', h('span', 'clash', `clashes with ${e.clashes.map((id) => b.today.find((x) => x.id === id)?.title ?? id).join(', ')}`));
     const ul = h('ul');
-    const named = (t) => t.replace(/\b[fm]\d{2}\b/g, (id) => fileName[id] ?? (mailFrom[id] ? `${mailFrom[id].split(':')[0]}'s letter` : id));
     (e.prep || []).forEach((p) => ul.append(h('li', '', named(p))));
-    const linked = [...(e.letters || []).map((id) => mailFrom[id]), ...(e.files || []).map((id) => fileName[id])].filter(Boolean);
-    if (linked.length) ul.append(h('li', 'what', `Have open: ${linked.join(' · ')}`));
+    const linked = [...new Set([...(e.letters || []).map((id) => from[id]), ...(e.files || []).map((id) => fileName[id])])].filter(Boolean);
+    if (linked.length) ul.append(h('li', 'muted', `Have open: ${linked.join(' · ')}`));
     li.append(ul);
     today.append(li);
   }
 
   const files = $('files');
   files.replaceChildren();
-  for (const f of b.files) {
+  for (const x of b.files) {
     const li = h('li');
-    li.append(h('b', '', f.name), ' ', h('span', 'what', `${f.folder}`));
-    if (f.answers) li.append(' ', h('span', 'found', `★ you asked for ${f.answers}`));
-    li.append(h('div', 'what', f.summary || ''));
-    const checks = (f.check || []).filter((c) => c.length > 4 && !/^n\/?a$/i.test(c));
+    li.append(h('b', '', x.name), ' ', h('span', 'muted', x.folder));
+    if (x.move_to) li.append(' ', h('span', 'to', `→ ${x.move_to}`));
+    if (x.answers) li.append(' ', h('span', 'found', `you asked for ${x.answers}`));
+    li.append(h('div', 'why', x.summary || ''));
+    const checks = (x.check || []).filter((c) => c.length > 4 && !/^n\/?a$/i.test(c));
     if (checks.length) {
       const ul = h('ul');
       checks.forEach((c) => ul.append(h('li', '', c)));
@@ -152,165 +180,99 @@ function briefing(b) {
     }
     files.append(li);
   }
+  tidyBox(b.files.filter((x) => x.move_to).length);
 
   const code = $('code');
   code.replaceChildren();
   for (const c of b.code) {
     const box = h('div', 'repo');
-    box.append(h('b', '', c.repo), ' ', h('code', '', c.branch || ''));
-    box.append(h('p', '', `“${c.goal}”`));
-    box.append(h('p', '', c.summary || ''));
-    if (c.passed != null) box.append(h('p', c.passed ? 'ok' : 'bad', c.passed ? 'Tests pass on the ghost\'s branch.' : 'Tests still fail on the ghost\'s branch.'));
+    box.append(h('b', '', c.repo), ' ', h('code', 'branch', c.branch || ''));
+    box.append(h('p', '', `“${c.goal}”`), h('p', 'muted', c.summary || ''));
+    if (c.passed != null) box.append(h('p', c.passed ? 'ok' : 'bad', c.passed ? "Tests pass on the ghost's branch." : "Tests still fail on the ghost's branch."));
+    const term = h('div', 'term');
+    for (const [cls, line] of terminal(night.steps.filter((s) => s.ghost === 'code' && s.outcome === 'done'))) term.append(h('p', cls, line));
+    if (term.childElementCount) box.append(term);
     if (c.diff) {
-      const d = h('details'), s = h('summary', '', c.stat?.split('\n').pop() || 'the change');
-      d.append(s, h('pre', '', c.diff));
+      const d = h('details');
+      d.append(h('summary', '', c.stat?.split('\n').pop() || 'the change'), h('pre', '', c.diff));
       box.append(d);
     }
-    if (local && c.state === 'done' && c.sha) {
-      const acts = h('div', 'acts'), keep = h('button', 'keep', 'Keep'), gone = h('button', 'exorcise', 'Exorcise');
-      keep.title = 'Keep the branch to merge yourself'; gone.title = 'Delete the ghost\'s branch and its copy';
-      keep.onclick = () => act('keep', c, box); gone.onclick = () => act('exorcise', c, box);
+    if (c.state === 'done' && c.sha) {
+      const acts = h('div', 'acts'), keep = h('button', 'cta', 'Keep'), gone = h('button', 'quiet', 'Exorcise');
+      keep.title = 'Keep the branch to merge yourself';
+      gone.title = "Delete the ghost's branch and its copy";
+      keep.onclick = () => settle('keep', c, box);
+      gone.onclick = () => settle('exorcise', c, box);
       acts.append(keep, gone);
       box.append(acts);
-    } else if (!local) box.append(h('p', 'what', 'On your Mac: Keep (merge it yourself) or Exorcise (it never happened).'));
+    }
     code.append(box);
   }
 
   const log = $('log');
   log.replaceChildren();
-  for (const s of steps) {
+  for (const s of night.steps) {
     const li = h('li');
-    li.append(h('span', 't', hm(at(s.t))), h('span', '', GHOSTS[s.ghost] ?? s.ghost), h('span', s.attempt > 1 ? 'again' : '', line(s)));
+    li.append(h('span', 't', hm(new Date(new Date(night.header.started).getTime() + s.t * 1000).toISOString())), h('span', '', s.ghost),
+      h('span', s.attempt > 1 ? 'again' : '', `${s.act.replaceAll('_', ' ')}: ${s.outcome}${s.attempt > 1 ? ` (attempt ${s.attempt})` : ''}`));
     log.append(li);
   }
 }
 
-function letter(m, label) {
-  const box = h('div', 'letter');
-  box.append(h('span', 'who', m.from), ' ', h('span', 'subj', m.subject));
-  if (m.why) box.append(h('div', 'why', m.why));
-  if (label === 'suspicious' && m.caught_by?.length) box.append(h('div', 'meta', `Caught by ${m.caught_by.join(' and ')}. Nothing in it was followed.`));
-  if (m.draft) {
-    const d = h('details');
-    d.append(h('summary', '', 'Drafted reply (not sent)'), h('pre', '', m.draft));
-    box.append(d);
-  }
-  if (local && m.message_id && !night.briefing?.night?.persona) {
-    const a = h('a', 'meta', 'Open in Mail');
-    a.href = `message://${encodeURIComponent(`<${m.message_id}>`)}`;
-    box.append(a);
-  }
-  return box;
+function tidyBox(count, moved = null) {   // Tidy moves the files into the folders the ghost picked; Undo puts them back
+  const box = $('tidy');
+  box.replaceChildren();
+  if (!count) return;
+  const go = h('button', moved == null ? 'cta' : 'quiet', moved == null ? 'Tidy' : 'Undo');
+  box.append(h('span', '', moved == null ? `${count} file${count > 1 ? 's' : ''} ready for a folder.` : `Moved ${moved}.`), go);
+  go.onclick = async () => {
+    go.disabled = true;
+    const res = await api(moved == null ? '/api/tidy' : '/api/untidy');
+    if (res.error) box.replaceChildren(h('span', 'bad', res.error));
+    else tidyBox(count, moved == null ? res.moved : null);
+  };
 }
 
-function line(s) {
-  const r = s.result || {};
-  if (s.outcome !== 'done') return `${s.act.replace('_', ' ')}: ${s.outcome}`;
-  switch (s.act) {
-    case 'triage_email': return `${r.label}: ${r.why}`;
-    case 'read_file_item': return `${r.kind}: ${r.summary}`;
-    case 'prep_meeting': return `${r.prep} prep notes`;
-    case 'llm_turn': return r.plan ? 'planned the night' : r.calls?.map((c) => `${c.name} ${c.path}`).join(', ') || 'thought';
-    case 'run_tool': return `${r.tool} ${r.path || ''}${r.passed != null ? (r.passed ? ' → pass' : ' → fail') : ''}`;
-    case 'forecast_dawn': return `TabPFN: awake around ${r.wake?.slice(11, 16)}, briefing by ${r.dawn?.slice(11, 16)}`;
-    case 'open_worktree': return `opened ${r.branch}`;
-    case 'commit_work': return r.sha ? `committed ${r.sha}` : 'nothing to commit';
-    case 'gather': return `gathered ${r.mail.length} letters, ${r.files.length} files, ${r.events.length} meetings`;
-    case 'check_sleep': return `idle ${r.idle_min} min`;
-    default: return s.act;
+async function settle(what, c, box) {
+  box.querySelectorAll('.acts button').forEach((b) => { b.disabled = true; });
+  const res = await api(`/api/${what}`, { repo: c.repo, branch: c.branch });
+  box.querySelector('.acts').replaceWith(h('p', 'muted', res.error ? res.error
+    : what === 'keep' ? `Kept: ${c.branch} is yours to merge.` : 'Exorcised: the branch and its copy are gone.'));
+}
+
+// ---- evening, night, morning ----------------------------------------------------------------------------------
+function show(st) {
+  const night = st.night, b = night?.briefing;
+  $('status').textContent = st.running ? 'A night is running.' : b ? `Last night: ${hm(b.night.finished)}` : '';
+  $('evening').hidden = st.running;
+  $('night').hidden = !st.running;
+  $('briefing').hidden = st.running || !b;
+  document.body.classList.toggle('morning', !st.running && Boolean(b));
+  if (st.running && night) board(night);
+  else if (b) briefing(b, night);
+}
+
+async function poll() {
+  try {
+    const st = await (await fetch('/api/state', { cache: 'no-store' })).json();
+    token = st.token;
+    show(st);
+    setTimeout(poll, st.running ? 5000 : 60000);
+  } catch {
+    $('status').textContent = "The graveyard isn't open: run graveyard-shift.";
   }
 }
 
-// ---- local mode: your own nights, Keep / Exorcise ------------------------------------------------------------
-async function api(path, body) {
-  const r = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Token': local.token }, body: JSON.stringify(body || {}) });
-  return r.json();
-}
-async function poll() {   // a live night: Temporal's history keeps growing, so does the replay
-  const st = await (await fetch('/api/state', { cache: 'no-store' })).json();
-  local = { ...local, ...st };
-  if (!st.night) return setTimeout(poll, 5000);
-  if (!scene) return start(st.night), setTimeout(poll, 5000);
-  const fresh = st.night.steps.filter(keep);
-  if (fresh.length > steps.length) {
-    steps.push(...fresh.slice(steps.length));
-    scrub.max = steps.length;
-    if (playing && !looping) loop();
-  }
-  night = st.night;
-  if (st.running) setTimeout(poll, 5000);
-  else { briefing(night.briefing); $('evening').hidden = false; if (playing && !looping) loop(); }
-}
-
-async function goodnight() {
+$('goodnight').onclick = async () => {
   $('goodnight').disabled = true;
   await api('/api/goodnight', { note: $('note').value });
-  $('evening').hidden = true;
-  $('cap-line').textContent = 'Goodnight. The ghosts wait in their graves until you\'re asleep.';
-  local.running = true;
+  $('status').textContent = "Goodnight. The ghosts wait in their graves until you're asleep.";
   setTimeout(poll, 3000);
-}
-
-async function act(what, c, box) {
-  box.querySelectorAll('button').forEach((b) => { b.disabled = true; });
-  const res = await api(`/api/${what}`, { repo: c.repo, branch: c.branch });
-  box.querySelector('.acts').replaceWith(h('p', 'what', res.error ? res.error : what === 'keep' ? `Kept: ${c.branch} is yours to merge.` : 'Exorcised: the branch and its copy are gone.'));
-}
-
-// ---- the install sheet (Pages only) -------------------------------------------------------------------------
-function installSheet() {
-  const dialog = $('install'), cmd = $('cmd').textContent, copy = $('copy');
-  const onMac = /Macintosh/.test(navigator.userAgent) && !('ontouchend' in document);
-  async function copyCmd() {
-    try {
-      await navigator.clipboard.writeText(cmd);
-      copy.textContent = 'Copied';
-      dialog.classList.add('copied');
-    } catch {
-      getSelection().selectAllChildren($('cmd'));
-      copy.textContent = 'Press ⌘C';
-    }
-  }
-  $('phone').hidden = onMac;
-  $('install-open').addEventListener('click', () => { dialog.showModal(); if (onMac) copyCmd(); });
-  copy.addEventListener('click', copyCmd);
-  $('install-close').addEventListener('click', () => dialog.close());
-  dialog.addEventListener('click', (e) => { if (e.target === dialog) dialog.close(); });
-}
-
-// ---- start --------------------------------------------------------------------------------------------------
-const keep = (s) => SHOWN.has(s.act) && (s.act !== 'run_tool' || s.result);
-
-async function main() {
-  installSheet();
-  if (new URLSearchParams(location.search).has('local')) {   // opened by the app on your Mac
-    try { local = await (await fetch('/api/state', { cache: 'no-store' })).json(); } catch { /* not running */ }
-  }
-  document.body.classList.toggle('local', !!local);
-  if (local) {
-    $('goodnight').onclick = goodnight;
-    $('evening').hidden = local.running;
-    if (local.running) setTimeout(poll, 5000);
-    if (!local.night) return;
-  }
-  start(local?.night ?? await (await fetch('replay/night.json', { cache: 'no-store' })).json());
-}
-
-function start(n) {
-  night = n;
-  steps = night.steps.filter(keep);
-  const inv = steps.find((s) => s.act === 'gather')?.result;
-  if (!inv) return;
-  scene = createScene($('scene'), { box: $('caption'), who: $('cap-who'), line: $('cap-line'), detail: $('cap-detail') });
-  scene.build(inv, steps, night.briefing?.night?.deadline);
-  scrub.max = steps.length;
-  briefing(night.briefing);
-  counts();
-  $('play').onclick = () => setPlaying(!playing);
-  $('speed').onclick = () => { speed = SPEEDS[(SPEEDS.indexOf(speed) + 1) % SPEEDS.length]; $('speed').textContent = `${speed}×`; };
-  $('skip').onclick = () => seek(steps.length);
-  scrub.oninput = () => seek(+scrub.value);
-  addEventListener('resize', () => scene.rebuildIfNeeded(inv));
-  if (reduced) { setPlaying(false); seek(steps.length); } else loop();
-}
-main();
+};
+$('awake').onclick = async () => {
+  $('awake').disabled = true;
+  await api('/api/awake');
+  $('status').textContent = 'The ghosts are finishing the step in hand and writing your briefing.';
+  setTimeout(poll, 3000);
+};
+poll();
